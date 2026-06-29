@@ -13,8 +13,8 @@
 <!-- Phosphor Icons -->
 <script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
 
-<!-- Supabase JS - com defer para garantir carregamento -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 /* =========================================================
@@ -1010,8 +1010,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   <div class="brand" onclick="navigateTo('home')">
     <div class="brand-logo"><i class="ph-bold ph-ticket"></i></div>
     <div class="brand-text">
-      <h1>Rifas Universitárias</h1>
-      <p>Unip • 2026</p>
+      <h1>Rifa Universitária</h1>
+      <p>Ciências da Computação - 7/8º Período | Unip • 2026</p>
     </div>
   </div>
   <div class="header-actions" id="headerActions"></div>
@@ -1025,7 +1025,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <span class="dot"></span>
         <span>Rifas Ativas • Prazo até 30/07/2026</span>
       </div>
-      <h2>Concorra a prêmios incríveis</h2>
+      <h2>Concorra ao prêmio de R$ 300 REAIS</h2>
       <p>Escolha sua rifa, selecione os números da sorte e pague via PIX ou em espécie. Cada número custa apenas <strong style="color: var(--accent-gold)">R$ 10,00</strong>.</p>
     </div>
 
@@ -1386,15 +1386,13 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 <script>
 /* =========================================================
-   VARIÁVEL GLOBAL DO SUPABASE
+   VARIÁVEL GLOBAL DO CLIENT SUPABASE
    ========================================================= */
-let supabase = null;
+let supabaseClient = null;
 
 /* =========================================================
-   FUNÇÕES GLOBAIS (definidas primeiro para evitar erros)
+   FUNÇÕES GLOBAIS
    ========================================================= */
-
-// Utilitários básicos
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -1417,7 +1415,6 @@ function toast(msg, type = 'info', duration = 3500) {
 function openModal(id) { $('#' + id).classList.add('active'); }
 function closeModal(id) { $('#' + id).classList.remove('active'); }
 
-// Fechar modal ao clicar fora
 document.addEventListener('DOMContentLoaded', () => {
   $$('.modal-overlay').forEach(overlay => {
     overlay.addEventListener('click', (e) => {
@@ -1427,7 +1424,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /* =========================================================
-   FUNÇÕES DE NAVEGAÇÃO E UI
+   NAVEGAÇÃO E UI
    ========================================================= */
 function navigateTo(view, data = null) {
   $$('.view').forEach(v => v.classList.remove('active'));
@@ -1496,7 +1493,7 @@ const state = {
 };
 
 /* =========================================================
-   CONSTANTES DO SISTEMA
+   CONSTANTES
    ========================================================= */
 const PRECO_NUMERO = 10.00;
 const DATA_LIMITE = new Date('2026-07-30T23:59:59');
@@ -1533,7 +1530,7 @@ function initSupabase() {
     const SUPABASE_URL = 'https://qeqbxuajqoqhsnjkifyo.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcWJ4dWFqcW9xaHNuamtpZnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTUyMTgsImV4cCI6MjA5ODI5MTIxOH0.CKzdokJUXcqBSaoyKMFIOLSP3CQMtmpCWxuZMfYdfV4';
 
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('Supabase inicializado com sucesso');
     return true;
   } catch (err) {
@@ -1547,16 +1544,16 @@ function initSupabase() {
    REAL-TIME
    ========================================================= */
 function unsubscribeRealtime() {
-  if (!supabase) return;
-  state.realtimeChannels.forEach(ch => supabase.removeChannel(ch));
+  if (!supabaseClient) return;
+  state.realtimeChannels.forEach(ch => supabaseClient.removeChannel(ch));
   state.realtimeChannels = [];
 }
 
 function subscribeRealtime() {
-  if (!supabase) return;
+  if (!supabaseClient) return;
   unsubscribeRealtime();
 
-  const chRifas = supabase
+  const chRifas = supabaseClient
     .channel('rifas-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'rifas' }, () => {
       if ($('#view-home').classList.contains('active')) loadRifas();
@@ -1564,7 +1561,7 @@ function subscribeRealtime() {
     })
     .subscribe();
 
-  const chPontos = supabase
+  const chPontos = supabaseClient
     .channel('pontos-changes')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'pontos' }, () => {
       if ($('#view-rifa').classList.contains('active') && state.currentRifa) {
@@ -1583,7 +1580,7 @@ function subscribeRealtime() {
    ========================================================= */
 async function handleLogin(e) {
   e.preventDefault();
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -1596,7 +1593,7 @@ async function handleLogin(e) {
   btn.innerHTML = '<span class="loader"></span> Entrando...';
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('usuarios')
       .select('*')
       .eq('username', username)
@@ -1627,7 +1624,7 @@ async function handleLogin(e) {
    HOME - LISTA DE RIFAS
    ========================================================= */
 async function loadRifas() {
-  if (!supabase) {
+  if (!supabaseClient) {
     $('#rifasGridContainer').innerHTML = `<div class="empty-state"><i class="ph-bold ph-warning-circle"></i><h4>Banco de dados não conectado</h4><p>Verifique sua conexão e recarregue a página.</p></div>`;
     return;
   }
@@ -1636,7 +1633,7 @@ async function loadRifas() {
   container.innerHTML = `<div class="loader-full"><div class="loader"></div><p>Carregando rifas...</p></div>`;
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('rifas')
       .select(`
         *,
@@ -1716,7 +1713,7 @@ function shareRifa(numeroCard) {
    RIFA INDIVIDUAL
    ========================================================= */
 async function loadRifaIndividual(rifaId) {
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -1725,7 +1722,7 @@ async function loadRifaIndividual(rifaId) {
   updateSelectionSummary();
 
   try {
-    const { data: rifa, error } = await supabase
+    const { data: rifa, error } = await supabaseClient
       .from('rifas')
       .select(`*, usuarios:responsavel_id (nome_responsavel)`)
       .eq('id', rifaId)
@@ -1768,13 +1765,13 @@ async function loadRifaIndividual(rifaId) {
 }
 
 async function loadPontosRifa(rifaId) {
-  if (!supabase) return;
+  if (!supabaseClient) return;
 
   const grid = $('#numerosGrid');
   grid.innerHTML = `<div class="loader-full" style="grid-column: 1/-1;"><div class="loader"></div></div>`;
 
   try {
-    const { data: pontos, error } = await supabase
+    const { data: pontos, error } = await supabaseClient
       .from('pontos')
       .select('*')
       .eq('rifa_id', rifaId)
@@ -1857,7 +1854,7 @@ function openCheckoutModal() {
 
 async function handleCheckout(e) {
   e.preventDefault();
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -1877,7 +1874,7 @@ async function handleCheckout(e) {
 
   try {
     for (const pontoId of state.selectedNumeros) {
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('pontos')
         .update({
           status: 'pendente',
@@ -1909,7 +1906,7 @@ async function handleCheckout(e) {
    DASHBOARD USUÁRIO
    ========================================================= */
 async function loadDashboardUser() {
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -1924,7 +1921,7 @@ async function loadDashboardUser() {
   $('#userAvatar').textContent = (user.nome_responsavel || user.username).charAt(0).toUpperCase();
 
   try {
-    const { data: rifa, error: errRifa } = await supabase
+    const { data: rifa, error: errRifa } = await supabaseClient
       .from('rifas')
       .select('*')
       .eq('responsavel_id', user.id)
@@ -1935,7 +1932,7 @@ async function loadDashboardUser() {
       return;
     }
 
-    const { data: pontos, error: errPontos } = await supabase
+    const { data: pontos, error: errPontos } = await supabaseClient
       .from('pontos')
       .select('*')
       .eq('rifa_id', rifa.id)
@@ -2033,7 +2030,7 @@ async function loadDashboardUser() {
 }
 
 async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -2041,7 +2038,7 @@ async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
   if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(valor)})?`)) return;
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('pontos')
       .update({ status: 'pago' })
       .eq('id', pontoId);
@@ -2068,7 +2065,7 @@ async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
 }
 
 async function liberarNumero(pontoId, numero) {
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -2076,7 +2073,7 @@ async function liberarNumero(pontoId, numero) {
   if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível.`)) return;
 
   try {
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('pontos')
       .update({
         status: 'disponivel',
@@ -2111,7 +2108,7 @@ async function liberarNumero(pontoId, numero) {
    DASHBOARD ADMIN
    ========================================================= */
 async function loadDashboardAdmin() {
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -2122,7 +2119,7 @@ async function loadDashboardAdmin() {
   }
 
   try {
-    const { data: rifas, error } = await supabase
+    const { data: rifas, error } = await supabaseClient
       .from('rifas')
       .select(`
         *,
@@ -2218,7 +2215,7 @@ function openCriarRifaModal() {
 
 async function handleCriarRifa(e) {
   e.preventDefault();
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -2243,7 +2240,7 @@ async function handleCriarRifa(e) {
   btn.innerHTML = '<span class="loader"></span> Criando...';
 
   try {
-    const { data: existentes, error: errEx } = await supabase
+    const { data: existentes, error: errEx } = await supabaseClient
       .from('rifas')
       .select('numero_card')
       .order('numero_card', { ascending: false })
@@ -2258,7 +2255,7 @@ async function handleCriarRifa(e) {
     }
     const numeroCard = String(proximoNum).padStart(3, '0');
 
-    const { data: usuario, error: errUser } = await supabase
+    const { data: usuario, error: errUser } = await supabaseClient
       .from('usuarios')
       .insert({
         username: numeroCard,
@@ -2271,7 +2268,7 @@ async function handleCriarRifa(e) {
 
     if (errUser) throw errUser;
 
-    const { data: rifa, error: errRifa } = await supabase
+    const { data: rifa, error: errRifa } = await supabaseClient
       .from('rifas')
       .insert({
         numero_card: numeroCard,
@@ -2291,7 +2288,7 @@ async function handleCriarRifa(e) {
       status: 'disponivel'
     }));
 
-    const { error: errPontos } = await supabase
+    const { error: errPontos } = await supabaseClient
       .from('pontos')
       .insert(pontosToInsert);
 
@@ -2348,7 +2345,7 @@ function openEditarRifaModal(rifa) {
 
 async function handleEditarRifa(e) {
   e.preventDefault();
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -2364,7 +2361,7 @@ async function handleEditarRifa(e) {
   btn.innerHTML = '<span class="loader"></span> Salvando...';
 
   try {
-    const { data: rifa, error: errRifa } = await supabase
+    const { data: rifa, error: errRifa } = await supabaseClient
       .from('rifas')
       .select('responsavel_id')
       .eq('id', id)
@@ -2372,14 +2369,14 @@ async function handleEditarRifa(e) {
 
     if (errRifa) throw errRifa;
 
-    const { error: errUser } = await supabase
+    const { error: errUser } = await supabaseClient
       .from('usuarios')
       .update({ nome_responsavel: nome })
       .eq('id', rifa.responsavel_id);
 
     if (errUser) throw errUser;
 
-    const { error: errUpdate } = await supabase
+    const { error: errUpdate } = await supabaseClient
       .from('rifas')
       .update({ chave_pix: pix, qr_code_url: qr || null, status: status })
       .eq('id', id);
@@ -2399,7 +2396,7 @@ async function handleEditarRifa(e) {
 }
 
 async function removerRifa(id, nome, numeroCard) {
-  if (!supabase) {
+  if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
@@ -2407,19 +2404,19 @@ async function removerRifa(id, nome, numeroCard) {
   if (!confirm(`Remover a rifa #${numeroCard} de ${nome}?\n\nEsta ação irá remover também todos os pontos associados.`)) return;
 
   try {
-    const { error: errPontos } = await supabase
+    const { error: errPontos } = await supabaseClient
       .from('pontos')
       .delete()
       .eq('rifa_id', id);
     if (errPontos) throw errPontos;
 
-    const { data: rifa } = await supabase.from('rifas').select('responsavel_id').eq('id', id).single();
+    const { data: rifa } = await supabaseClient.from('rifas').select('responsavel_id').eq('id', id).single();
 
-    const { error: errRifa } = await supabase.from('rifas').delete().eq('id', id);
+    const { error: errRifa } = await supabaseClient.from('rifas').delete().eq('id', id);
     if (errRifa) throw errRifa;
 
     if (rifa?.responsavel_id) {
-      await supabase.from('usuarios').delete().eq('id', rifa.responsavel_id);
+      await supabaseClient.from('usuarios').delete().eq('id', rifa.responsavel_id);
     }
 
     toast(`Rifa #${numeroCard} removida`, 'success');
@@ -2434,12 +2431,12 @@ async function removerRifa(id, nome, numeroCard) {
    DEEP LINK / HASH ROUTING
    ========================================================= */
 function handleHashRoute() {
-  if (!supabase) return;
+  if (!supabaseClient) return;
   
   const hash = window.location.hash;
   if (hash.startsWith('#rifa=')) {
     const num = hash.replace('#rifa=', '').trim();
-    supabase.from('rifas').select('id').eq('numero_card', num).single().then(({ data }) => {
+    supabaseClient.from('rifas').select('id').eq('numero_card', num).single().then(({ data }) => {
       if (data) navigateTo('rifa', data.id);
     });
   }
@@ -2451,7 +2448,6 @@ function handleHashRoute() {
 window.addEventListener('DOMContentLoaded', () => {
   verificarEncerramento();
   
-  // Aguarda o Supabase carregar
   if (initSupabase()) {
     subscribeRealtime();
     loadRifas();
