@@ -2224,7 +2224,13 @@ document.addEventListener('click', async (e) => {
   const action = btn.dataset.action;
   const pontoId = parseInt(btn.dataset.pontoId, 10);
   
-  if (!pontoId || isNaN(pontoId)) return;
+  console.log('🔍 Debug - Ação:', action, 'Ponto ID:', pontoId, 'Tipo:', typeof pontoId);
+  
+  if (!pontoId || isNaN(pontoId)) {
+    console.error('❌ ID inválido:', btn.dataset.pontoId);
+    toast('Erro: ID do número inválido', 'error');
+    return;
+  }
 
   if (action === 'confirm') {
     await confirmarPagamento(pontoId);
@@ -2242,26 +2248,41 @@ async function confirmarPagamento(pontoId) {
     return;
   }
 
+  console.log('✅ Confirmando pagamento para ponto ID:', pontoId);
+
+  // Busca o ponto do cache ou do banco
   let ponto = state.pontosCache.get(pontoId);
   
   if (!ponto) {
+    console.log('⚠️ Ponto não está no cache, buscando no banco...');
     try {
       const { data, error } = await supabaseClient
         .from('pontos')
         .select('*')
-        .eq('id', pontoId)
+        .eq('id', Number(pontoId))
         .single();
       
-      if (error || !data) {
-        toast('Número não encontrado', 'error');
+      if (error) {
+        console.error('❌ Erro ao buscar ponto:', error);
+        toast('Erro ao buscar dados do número: ' + error.message, 'error');
         return;
       }
+      
+      if (!data) {
+        console.error('❌ Ponto não encontrado:', pontoId);
+        toast('Número não encontrado no banco de dados', 'error');
+        return;
+      }
+      
       ponto = data;
+      console.log('✅ Ponto encontrado:', ponto);
     } catch (err) {
-      console.error(err);
+      console.error('❌ Exceção ao buscar ponto:', err);
       toast('Erro ao buscar dados do número', 'error');
       return;
     }
+  } else {
+    console.log('✅ Ponto encontrado no cache:', ponto);
   }
 
   const nome = ponto.comprador_nome || 'Não informado';
@@ -2277,12 +2298,22 @@ async function confirmarPagamento(pontoId) {
   if (!confirm(confirmMsg)) return;
 
   try {
-    const { error } = await supabaseClient
+    console.log('🔄 Atualizando ponto ID:', pontoId, 'para status: pago');
+    
+    const { data, error } = await supabaseClient
       .from('pontos')
       .update({ status: 'pago' })
-      .eq('id', pontoId);
+      .eq('id', Number(pontoId))
+      .select()
+      .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Erro ao atualizar ponto:', error);
+      toast('Erro ao confirmar pagamento: ' + error.message, 'error');
+      return;
+    }
+
+    console.log('✅ Pagamento confirmado:', data);
 
     $('#reciboContent').innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -2295,10 +2326,10 @@ async function confirmarPagamento(pontoId) {
         <div><strong style="color: var(--neutral-400);">Status:</strong> <span class="status-badge pago">PAGO</span></div>
       </div>`;
     openModal('modalRecibo');
-    toast(`Número ${numero} confirmado como pago`, 'success');
+    toast(`✅ Número ${numero} confirmado como pago!`, 'success');
     loadDashboardUser();
   } catch (err) {
-    console.error(err);
+    console.error('❌ Exceção ao confirmar pagamento:', err);
     toast('Erro ao confirmar pagamento', 'error');
   }
 }
@@ -2312,23 +2343,27 @@ async function liberarNumero(pontoId) {
     return;
   }
 
+  console.log('🔄 Liberando ponto ID:', pontoId);
+
   let ponto = state.pontosCache.get(pontoId);
   
   if (!ponto) {
+    console.log('⚠️ Ponto não está no cache, buscando no banco...');
     try {
       const { data, error } = await supabaseClient
         .from('pontos')
         .select('*')
-        .eq('id', pontoId)
+        .eq('id', Number(pontoId))
         .single();
       
       if (error || !data) {
+        console.error('❌ Erro ao buscar ponto:', error);
         toast('Número não encontrado', 'error');
         return;
       }
       ponto = data;
     } catch (err) {
-      console.error(err);
+      console.error('❌ Exceção ao buscar ponto:', err);
       toast('Erro ao buscar dados', 'error');
       return;
     }
@@ -2347,7 +2382,9 @@ async function liberarNumero(pontoId) {
         comprador_telefone: null,
         metodo_pagamento: null
       })
-      .eq('id', pontoId);
+      .eq('id', Number(pontoId))
+      .select()
+      .single();
 
     if (error) throw error;
 
