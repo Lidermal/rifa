@@ -13,8 +13,8 @@
 <!-- Phosphor Icons -->
 <script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
 
-<!-- Supabase JS -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Supabase JS - com defer para garantir carregamento -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" defer></script>
 
 <style>
 /* =========================================================
@@ -957,7 +957,6 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .encerrado-banner h3 { font-family: var(--font-display); font-size: 22px; margin-bottom: 6px; }
 .encerrado-banner p { color: var(--neutral-400); font-size: 14px; }
 
-/* Caixa de credenciais exibidas ao admin */
 .credentials-box {
   background: rgba(251, 191, 36, 0.08);
   border: 1px solid rgba(251, 191, 36, 0.3);
@@ -1011,8 +1010,8 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   <div class="brand" onclick="navigateTo('home')">
     <div class="brand-logo"><i class="ph-bold ph-ticket"></i></div>
     <div class="brand-text">
-      <h1>Rifa Universitária</h1>
-      <p>Ciências da Computação - 7/8º Período | Unip • 2026</p>
+      <h1>Rifas Universitárias</h1>
+      <p>Unip • 2026</p>
     </div>
   </div>
   <div class="header-actions" id="headerActions"></div>
@@ -1026,7 +1025,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <span class="dot"></span>
         <span>Rifas Ativas • Prazo até 30/07/2026</span>
       </div>
-      <h2>Concorra a um prêmio de R$300</h2>
+      <h2>Concorra a prêmios incríveis</h2>
       <p>Escolha sua rifa, selecione os números da sorte e pague via PIX ou em espécie. Cada número custa apenas <strong style="color: var(--accent-gold)">R$ 10,00</strong>.</p>
     </div>
 
@@ -1387,35 +1386,15 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
 <script>
 /* =========================================================
-   CONFIGURAÇÃO DO SUPABASE
+   VARIÁVEL GLOBAL DO SUPABASE
    ========================================================= */
-const SUPABASE_URL = 'https://qeqbxuajqoqhsnjkifyo.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcWJ4dWFqcW9xaHNuamtpZnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTUyMTgsImV4cCI6MjA5ODI5MTIxOH0.CKzdokJUXcqBSaoyKMFIOLSP3CQMtmpCWxuZMfYdfV4';
-
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let supabase = null;
 
 /* =========================================================
-   CONSTANTES DO SISTEMA (sem senhas hardcoded)
+   FUNÇÕES GLOBAIS (definidas primeiro para evitar erros)
    ========================================================= */
-const PRECO_NUMERO = 10.00;
-const DATA_LIMITE = new Date('2026-07-30T23:59:59');
 
-/* =========================================================
-   ESTADO GLOBAL
-   ========================================================= */
-const state = {
-  currentUser: null,
-  currentRifa: null,
-  selectedNumeros: [],
-  rifas: [],
-  pontos: [],
-  isEncerrado: false,
-  realtimeChannels: []
-};
-
-/* =========================================================
-   UTILITÁRIOS
-   ========================================================= */
+// Utilitários básicos
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
@@ -1438,32 +1417,17 @@ function toast(msg, type = 'info', duration = 3500) {
 function openModal(id) { $('#' + id).classList.add('active'); }
 function closeModal(id) { $('#' + id).classList.remove('active'); }
 
-$$('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', (e) => {
-    if (e.target === overlay) overlay.classList.remove('active');
+// Fechar modal ao clicar fora
+document.addEventListener('DOMContentLoaded', () => {
+  $$('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.classList.remove('active');
+    });
   });
 });
 
-function verificarEncerramento() {
-  state.isEncerrado = new Date() > DATA_LIMITE;
-  const banner = $('#encerradoBanner');
-  const bannerRifa = $('#rifaEncerradoBanner');
-  if (state.isEncerrado) {
-    const html = `
-      <div class="encerrado-banner">
-        <i class="ph-bold ph-seal-warning"></i>
-        <h3>Rifas Encerradas</h3>
-        <p>O prazo para vendas (30/07/2026 23:59) foi atingido. Novas seleções foram bloqueadas.</p>
-      </div>`;
-    banner.innerHTML = html;
-    banner.style.display = 'block';
-    bannerRifa.innerHTML = html;
-    bannerRifa.style.display = 'block';
-  }
-}
-
 /* =========================================================
-   NAVEGAÇÃO
+   FUNÇÕES DE NAVEGAÇÃO E UI
    ========================================================= */
 function navigateTo(view, data = null) {
   $$('.view').forEach(v => v.classList.remove('active'));
@@ -1497,9 +1461,6 @@ function updateHeaderActions() {
   }
 }
 
-/* =========================================================
-   AUTENTICAÇÃO
-   ========================================================= */
 function openLoginModal() {
   $('#loginUser').value = '';
   $('#loginPass').value = '';
@@ -1507,8 +1468,126 @@ function openLoginModal() {
   setTimeout(() => $('#loginUser').focus(), 200);
 }
 
+function logout() {
+  state.currentUser = null;
+  unsubscribeRealtime();
+  toast('Você saiu do sistema', 'info');
+  navigateTo('home');
+}
+
+function copyChavePix() {
+  const chave = $('#rifaChavePix').textContent;
+  navigator.clipboard.writeText(chave).then(() => {
+    toast('Chave PIX copiada!', 'success');
+  });
+}
+
+/* =========================================================
+   ESTADO GLOBAL
+   ========================================================= */
+const state = {
+  currentUser: null,
+  currentRifa: null,
+  selectedNumeros: [],
+  rifas: [],
+  pontos: [],
+  isEncerrado: false,
+  realtimeChannels: []
+};
+
+/* =========================================================
+   CONSTANTES DO SISTEMA
+   ========================================================= */
+const PRECO_NUMERO = 10.00;
+const DATA_LIMITE = new Date('2026-07-30T23:59:59');
+
+function verificarEncerramento() {
+  state.isEncerrado = new Date() > DATA_LIMITE;
+  const banner = $('#encerradoBanner');
+  const bannerRifa = $('#rifaEncerradoBanner');
+  if (state.isEncerrado) {
+    const html = `
+      <div class="encerrado-banner">
+        <i class="ph-bold ph-seal-warning"></i>
+        <h3>Rifas Encerradas</h3>
+        <p>O prazo para vendas (30/07/2026 23:59) foi atingido. Novas seleções foram bloqueadas.</p>
+      </div>`;
+    banner.innerHTML = html;
+    banner.style.display = 'block';
+    bannerRifa.innerHTML = html;
+    bannerRifa.style.display = 'block';
+  }
+}
+
+/* =========================================================
+   INICIALIZAÇÃO DO SUPABASE
+   ========================================================= */
+function initSupabase() {
+  try {
+    if (typeof window.supabase === 'undefined') {
+      console.error('Supabase JS não carregado');
+      toast('Erro: Biblioteca Supabase não carregou. Recarregue a página.', 'error', 10000);
+      return false;
+    }
+
+    const SUPABASE_URL = 'https://qeqbxuajqoqhsnjkifyo.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcWJ4dWFqcW9xaHNuamtpZnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTUyMTgsImV4cCI6MjA5ODI5MTIxOH0.CKzdokJUXcqBSaoyKMFIOLSP3CQMtmpCWxuZMfYdfV4';
+
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('Supabase inicializado com sucesso');
+    return true;
+  } catch (err) {
+    console.error('Erro ao inicializar Supabase:', err);
+    toast('Erro ao conectar ao banco de dados', 'error', 10000);
+    return false;
+  }
+}
+
+/* =========================================================
+   REAL-TIME
+   ========================================================= */
+function unsubscribeRealtime() {
+  if (!supabase) return;
+  state.realtimeChannels.forEach(ch => supabase.removeChannel(ch));
+  state.realtimeChannels = [];
+}
+
+function subscribeRealtime() {
+  if (!supabase) return;
+  unsubscribeRealtime();
+
+  const chRifas = supabase
+    .channel('rifas-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rifas' }, () => {
+      if ($('#view-home').classList.contains('active')) loadRifas();
+      if ($('#view-dashboard-admin').classList.contains('active')) loadDashboardAdmin();
+    })
+    .subscribe();
+
+  const chPontos = supabase
+    .channel('pontos-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pontos' }, () => {
+      if ($('#view-rifa').classList.contains('active') && state.currentRifa) {
+        loadPontosRifa(state.currentRifa.id);
+      }
+      if ($('#view-dashboard-user').classList.contains('active')) loadDashboardUser();
+      if ($('#view-dashboard-admin').classList.contains('active')) loadDashboardAdmin();
+    })
+    .subscribe();
+
+  state.realtimeChannels.push(chRifas, chPontos);
+}
+
+/* =========================================================
+   AUTENTICAÇÃO
+   ========================================================= */
 async function handleLogin(e) {
   e.preventDefault();
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   const username = $('#loginUser').value.trim();
   const password = $('#loginPass').value;
   const btn = $('#btnLogin');
@@ -1544,50 +1623,15 @@ async function handleLogin(e) {
   }
 }
 
-function logout() {
-  state.currentUser = null;
-  unsubscribeRealtime();
-  toast('Você saiu do sistema', 'info');
-  navigateTo('home');
-}
-
-/* =========================================================
-   REAL-TIME
-   ========================================================= */
-function unsubscribeRealtime() {
-  state.realtimeChannels.forEach(ch => supabase.removeChannel(ch));
-  state.realtimeChannels = [];
-}
-
-function subscribeRealtime() {
-  unsubscribeRealtime();
-
-  const chRifas = supabase
-    .channel('rifas-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'rifas' }, () => {
-      if ($('#view-home').classList.contains('active')) loadRifas();
-      if ($('#view-dashboard-admin').classList.contains('active')) loadDashboardAdmin();
-    })
-    .subscribe();
-
-  const chPontos = supabase
-    .channel('pontos-changes')
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'pontos' }, () => {
-      if ($('#view-rifa').classList.contains('active') && state.currentRifa) {
-        loadPontosRifa(state.currentRifa.id);
-      }
-      if ($('#view-dashboard-user').classList.contains('active')) loadDashboardUser();
-      if ($('#view-dashboard-admin').classList.contains('active')) loadDashboardAdmin();
-    })
-    .subscribe();
-
-  state.realtimeChannels.push(chRifas, chPontos);
-}
-
 /* =========================================================
    HOME - LISTA DE RIFAS
    ========================================================= */
 async function loadRifas() {
+  if (!supabase) {
+    $('#rifasGridContainer').innerHTML = `<div class="empty-state"><i class="ph-bold ph-warning-circle"></i><h4>Banco de dados não conectado</h4><p>Verifique sua conexão e recarregue a página.</p></div>`;
+    return;
+  }
+
   const container = $('#rifasGridContainer');
   container.innerHTML = `<div class="loader-full"><div class="loader"></div><p>Carregando rifas...</p></div>`;
 
@@ -1672,6 +1716,11 @@ function shareRifa(numeroCard) {
    RIFA INDIVIDUAL
    ========================================================= */
 async function loadRifaIndividual(rifaId) {
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   state.selectedNumeros = [];
   updateSelectionSummary();
 
@@ -1719,6 +1768,8 @@ async function loadRifaIndividual(rifaId) {
 }
 
 async function loadPontosRifa(rifaId) {
+  if (!supabase) return;
+
   const grid = $('#numerosGrid');
   grid.innerHTML = `<div class="loader-full" style="grid-column: 1/-1;"><div class="loader"></div></div>`;
 
@@ -1806,6 +1857,11 @@ function openCheckoutModal() {
 
 async function handleCheckout(e) {
   e.preventDefault();
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   const nome = $('#checkoutNome').value.trim();
   const tel = $('#checkoutTel').value.trim();
   const metodo = $('#checkoutMetodo').value;
@@ -1849,17 +1905,15 @@ async function handleCheckout(e) {
   }
 }
 
-function copyChavePix() {
-  const chave = $('#rifaChavePix').textContent;
-  navigator.clipboard.writeText(chave).then(() => {
-    toast('Chave PIX copiada!', 'success');
-  });
-}
-
 /* =========================================================
    DASHBOARD USUÁRIO
    ========================================================= */
 async function loadDashboardUser() {
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   if (!state.currentUser || state.currentUser.role !== 'user') {
     navigateTo('home');
     return;
@@ -1979,6 +2033,11 @@ async function loadDashboardUser() {
 }
 
 async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(valor)})?`)) return;
 
   try {
@@ -2009,6 +2068,11 @@ async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
 }
 
 async function liberarNumero(pontoId, numero) {
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível.`)) return;
 
   try {
@@ -2047,6 +2111,11 @@ async function liberarNumero(pontoId, numero) {
    DASHBOARD ADMIN
    ========================================================= */
 async function loadDashboardAdmin() {
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   if (!state.currentUser || state.currentUser.role !== 'admin') {
     navigateTo('home');
     return;
@@ -2137,7 +2206,7 @@ async function loadDashboardAdmin() {
 }
 
 /* =========================================================
-   CRIAR RIFA (sem senha hardcoded)
+   CRIAR RIFA
    ========================================================= */
 function openCriarRifaModal() {
   $('#novoRespNome').value = '';
@@ -2149,6 +2218,11 @@ function openCriarRifaModal() {
 
 async function handleCriarRifa(e) {
   e.preventDefault();
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   const nome = $('#novoRespNome').value.trim();
   const pix = $('#novoRespPix').value.trim();
   const qr = $('#novoRespQr').value.trim();
@@ -2225,7 +2299,6 @@ async function handleCriarRifa(e) {
 
     closeModal('modalCriarRifa');
 
-    // Pop-up de sucesso com credenciais exibidas
     $('#sucessoRifaTitulo').textContent = 'Rifa Criada!';
     $('#sucessoRifaMsg').textContent = `A rifa do usuario ${nome} foi criada. Número ${numeroCard}`;
     $('#sucessoCredenciais').innerHTML = `
@@ -2275,6 +2348,11 @@ function openEditarRifaModal(rifa) {
 
 async function handleEditarRifa(e) {
   e.preventDefault();
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   const id = $('#editRifaId').value;
   const nome = $('#editRespNome').value.trim();
   const pix = $('#editRespPix').value.trim();
@@ -2321,6 +2399,11 @@ async function handleEditarRifa(e) {
 }
 
 async function removerRifa(id, nome, numeroCard) {
+  if (!supabase) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
   if (!confirm(`Remover a rifa #${numeroCard} de ${nome}?\n\nEsta ação irá remover também todos os pontos associados.`)) return;
 
   try {
@@ -2351,6 +2434,8 @@ async function removerRifa(id, nome, numeroCard) {
    DEEP LINK / HASH ROUTING
    ========================================================= */
 function handleHashRoute() {
+  if (!supabase) return;
+  
   const hash = window.location.hash;
   if (hash.startsWith('#rifa=')) {
     const num = hash.replace('#rifa=', '').trim();
@@ -2365,9 +2450,13 @@ function handleHashRoute() {
    ========================================================= */
 window.addEventListener('DOMContentLoaded', () => {
   verificarEncerramento();
-  subscribeRealtime();
-  loadRifas();
-  handleHashRoute();
+  
+  // Aguarda o Supabase carregar
+  if (initSupabase()) {
+    subscribeRealtime();
+    loadRifas();
+    handleHashRoute();
+  }
 });
 
 window.addEventListener('hashchange', handleHashRoute);
