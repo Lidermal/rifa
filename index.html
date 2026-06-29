@@ -173,9 +173,13 @@ img { max-width: 100%; display: block; }
 .btn-ghost { background: var(--glass-bg); border-color: var(--glass-border); backdrop-filter: blur(10px); }
 .btn-ghost:hover { background: var(--glass-bg-strong); }
 .btn-danger { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; }
+.btn-danger:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(239,68,68,0.5); }
 .btn-success { background: linear-gradient(135deg, #10b981, #047857); color: white; }
+.btn-success:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(16,185,129,0.5); }
 .btn-gold { background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-2)); color: #1a0b2e; font-weight: 700; }
 .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(251, 191, 36, 0.5); }
+.btn-whatsapp { background: linear-gradient(135deg, #25D366, #128C7E); color: white; font-weight: 700; }
+.btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(37, 211, 102, 0.5); }
 .btn-lg { padding: 14px 26px; font-size: 15px; }
 .btn-sm { padding: 7px 14px; font-size: 13px; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
@@ -636,6 +640,55 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 .checkout-numeros { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
 .numero-tag { background: var(--primary-500); color: white; padding: 6px 12px; border-radius: 100px; font-size: 13px; font-weight: 600; }
 
+.share-modal { max-width: 520px; }
+.share-preview {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  position: relative;
+  overflow: hidden;
+}
+.share-preview canvas,
+.share-preview img {
+  max-width: 100%;
+  max-height: 60vh;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+.share-preview .loader-full {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+}
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.share-actions .btn {
+  justify-content: center;
+  width: 100%;
+}
+.share-info {
+  background: rgba(37, 211, 102, 0.1);
+  border: 1px solid rgba(37, 211, 102, 0.3);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--neutral-200);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.share-info i { color: #25D366; font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
 @media (max-width: 640px) {
   .header { padding: 14px 18px; }
   .brand-text h1 { font-size: 15px; }
@@ -1037,16 +1090,67 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 </div>
 
+<div class="modal-overlay" id="modalShare">
+  <div class="modal share-modal">
+    <button class="modal-close" onclick="closeModal('modalShare')"><i class="ph-bold ph-x"></i></button>
+    <div class="modal-header">
+      <div class="modal-icon" style="background: linear-gradient(135deg, #25D366, #128C7E);">
+        <i class="ph-bold ph-whatsapp-logo"></i>
+      </div>
+      <h3>Compartilhar Rifa</h3>
+      <p id="shareSubtitle">Imagem gerada para status do WhatsApp</p>
+    </div>
+
+    <div class="share-info">
+      <i class="ph-bold ph-info"></i>
+      <span>A imagem abaixo está pronta para ser salva ou compartilhada no status do WhatsApp. Ela mostra todos os números disponíveis e indisponíveis da rifa.</span>
+    </div>
+
+    <div class="share-preview" id="sharePreview">
+      <div class="loader-full">
+        <div class="loader"></div>
+        <p>Gerando imagem...</p>
+      </div>
+    </div>
+
+    <div class="share-actions">
+      <button class="btn btn-whatsapp btn-lg" id="btnShareWhatsApp" onclick="nativeShareImage()" disabled>
+        <i class="ph-bold ph-whatsapp-logo"></i> Compartilhar no WhatsApp
+      </button>
+      <button class="btn btn-gold btn-lg" id="btnDownloadImage" onclick="downloadShareImage()" disabled>
+        <i class="ph-bold ph-download-simple"></i> Baixar Imagem
+      </button>
+      <button class="btn btn-ghost" onclick="copyShareLink()">
+        <i class="ph-bold ph-link"></i> Copiar link da rifa
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
 let supabaseClient = null;
+let currentShareImageBlob = null;
+let currentShareRifa = null;
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 
 const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const fmtData = (d) => new Date(d).toLocaleString('pt-BR');
+
+// ============================================
+// FUNÇÃO PARA DETECTAR URL REAL DO SITE
+// ============================================
+function getSiteUrl() {
+  // Tenta detectar a URL real do navegador
+  if (window.location.origin && window.location.origin !== 'null' && window.location.origin !== '') {
+    return window.location.origin + window.location.pathname;
+  }
+  // Fallback para URL conhecida do GitHub Pages
+  return 'https://lidermal.github.io/rifas';
+}
 
 function toast(msg, type = 'info', duration = 3500) {
   const container = $('#toastContainer');
@@ -1343,8 +1447,8 @@ async function loadRifas() {
       const card = document.createElement('div');
       card.className = `rifa-card${isClosed ? ' closed' : ''}`;
       card.innerHTML = `
-        <button class="btn-share" onclick="event.stopPropagation(); shareRifa('${r.numero_card}')" title="Copiar link">
-          <i class="ph-bold ph-share-network"></i>
+        <button class="btn-share" onclick="event.stopPropagation(); shareRifa('${r.id}')" title="Compartilhar no WhatsApp">
+          <i class="ph-bold ph-whatsapp-logo"></i>
         </button>
         <div class="rifa-number">${r.numero_card}</div>
         <div class="rifa-responsavel">${respNome}</div>
@@ -1374,10 +1478,409 @@ async function loadRifas() {
   }
 }
 
-function shareRifa(numeroCard) {
-  const url = `${window.location.origin}${window.location.pathname}#rifa=${numeroCard}`;
+async function shareRifa(rifaId) {
+  if (!supabaseClient) {
+    toast('Banco de dados não conectado', 'error');
+    return;
+  }
+
+  $('#sharePreview').innerHTML = `
+    <div class="loader-full">
+      <div class="loader"></div>
+      <p>Gerando imagem...</p>
+    </div>`;
+  $('#btnShareWhatsApp').disabled = true;
+  $('#btnDownloadImage').disabled = true;
+  currentShareImageBlob = null;
+  currentShareRifa = null;
+  openModal('modalShare');
+
+  try {
+    const { data: rifa, error: errRifa } = await supabaseClient
+      .from('rifas')
+      .select(`*, usuarios:responsavel_id (nome_responsavel)`)
+      .eq('id', rifaId)
+      .single();
+
+    if (errRifa || !rifa) {
+      toast('Rifa não encontrada', 'error');
+      closeModal('modalShare');
+      return;
+    }
+
+    const { data: pontos, error: errPontos } = await supabaseClient
+      .from('pontos')
+      .select('*')
+      .eq('rifa_id', rifaId)
+      .order('numero', { ascending: true });
+
+    if (errPontos) throw errPontos;
+
+    const respNome = rifa.usuarios?.nome_responsavel || 'Responsável';
+    currentShareRifa = { ...rifa, responsavel_nome: respNome, pontos: pontos || [] };
+
+    $('#shareSubtitle').textContent = `Rifa #${rifa.numero_card} - ${respNome}`;
+
+    const blob = await generateShareImage(currentShareRifa);
+    currentShareImageBlob = blob;
+
+    const url = URL.createObjectURL(blob);
+    $('#sharePreview').innerHTML = `<img src="${url}" alt="Imagem da rifa">`;
+
+    $('#btnShareWhatsApp').disabled = false;
+    $('#btnDownloadImage').disabled = false;
+
+  } catch (err) {
+    console.error(err);
+    $('#sharePreview').innerHTML = `<p style="color: var(--danger); text-align: center;">Erro ao gerar imagem: ${err.message}</p>`;
+    toast('Erro ao gerar imagem', 'error');
+  }
+}
+
+async function generateShareImage(rifa) {
+  return new Promise((resolve, reject) => {
+    try {
+      const canvas = document.createElement('canvas');
+      const width = 1080;
+      const height = 1920;
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+
+      function drawRoundRect(x, y, w, h, r) {
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+      }
+
+      function wrapText(text, x, y, maxWidth, lineHeight) {
+        const words = text.split(' ');
+        let line = '';
+        let currentY = y;
+
+        for (let n = 0; n < words.length; n++) {
+          const testLine = line + words[n] + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > maxWidth && n > 0) {
+            ctx.fillText(line, x, currentY);
+            line = words[n] + ' ';
+            currentY += lineHeight;
+          } else {
+            line = testLine;
+          }
+        }
+        ctx.fillText(line, x, currentY);
+        return currentY;
+      }
+
+      const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+      bgGradient.addColorStop(0, '#0a0118');
+      bgGradient.addColorStop(0.5, '#1a0b2e');
+      bgGradient.addColorStop(1, '#0f0524');
+      ctx.fillStyle = bgGradient;
+      ctx.fillRect(0, 0, width, height);
+
+      const circles = [
+        { x: 150, y: 300, r: 400, color: 'rgba(139, 92, 246, 0.25)' },
+        { x: 950, y: 250, r: 350, color: 'rgba(236, 72, 153, 0.2)' },
+        { x: 540, y: 1700, r: 500, color: 'rgba(34, 211, 238, 0.15)' }
+      ];
+      circles.forEach(c => {
+        const grad = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+        grad.addColorStop(0, c.color);
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, width, height);
+      });
+
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.03)';
+      for (let x = 0; x < width; x += 40) {
+        for (let y = 0; y < height; y += 40) {
+          ctx.beginPath();
+          ctx.arc(x, y, 1, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
+      const headerY = 80;
+      
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      drawRoundRect(width/2 - 180, headerY, 360, 50, 25);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#10b981';
+      ctx.beginPath();
+      ctx.arc(width/2 - 140, headerY + 25, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowColor = '#10b981';
+      ctx.shadowBlur = 10;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      ctx.fillStyle = '#ddd6fe';
+      ctx.font = '500 22px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('RIFA ATIVA • UNIP 2026', width/2 + 10, headerY + 33);
+
+      const titleY = 220;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 72px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('RIFA', width/2, titleY);
+
+      const numeroText = `#${rifa.numero_card}`;
+      ctx.font = '700 140px "Space Grotesk", sans-serif';
+      
+      const goldGradient = ctx.createLinearGradient(width/2 - 200, 0, width/2 + 200, 0);
+      goldGradient.addColorStop(0, '#fbbf24');
+      goldGradient.addColorStop(1, '#f59e0b');
+      ctx.fillStyle = goldGradient;
+      ctx.fillText(numeroText, width/2, titleY + 150);
+
+      ctx.fillStyle = '#e4e4e7';
+      ctx.font = '600 36px Inter, sans-serif';
+      const respNome = rifa.responsavel_nome || 'Responsável';
+      wrapText(respNome, width/2, titleY + 220, width - 120, 44);
+
+      const premioY = titleY + 300;
+      ctx.fillStyle = 'rgba(251, 191, 36, 0.1)';
+      drawRoundRect(100, premioY, width - 200, 120, 24);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '500 24px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PRÊMIO', width/2, premioY + 45);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 52px "Space Grotesk", sans-serif';
+      ctx.fillText('R$ 300,00', width/2, premioY + 100);
+
+      const numerosY = premioY + 180;
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 32px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('NÚMEROS DISPONÍVEIS', width/2, numerosY);
+
+      const pontos = rifa.pontos || [];
+      const disponiveis = pontos.filter(p => p.status === 'disponivel').length;
+      const indisponiveis = pontos.length - disponiveis;
+
+      ctx.font = '500 22px Inter, sans-serif';
+      ctx.fillStyle = '#10b981';
+      ctx.textAlign = 'right';
+      ctx.fillText(`● ${disponiveis} disponíveis`, width/2 - 20, numerosY + 45);
+      ctx.fillStyle = '#ef4444';
+      ctx.textAlign = 'left';
+      ctx.fillText(`● ${indisponiveis} indisponíveis`, width/2 + 20, numerosY + 45);
+
+      const gridStartY = numerosY + 90;
+      const cellWidth = 420;
+      const cellHeight = 140;
+      const gap = 30;
+      const startX = (width - (cellWidth * 2 + gap)) / 2;
+
+      pontos.forEach((ponto, index) => {
+        const col = index % 2;
+        const row = Math.floor(index / 2);
+        const x = startX + col * (cellWidth + gap);
+        const y = gridStartY + row * (cellHeight + gap);
+
+        const isAvailable = ponto.status === 'disponivel';
+
+        if (isAvailable) {
+          const greenGrad = ctx.createLinearGradient(x, y, x + cellWidth, y + cellHeight);
+          greenGrad.addColorStop(0, 'rgba(16, 185, 129, 0.2)');
+          greenGrad.addColorStop(1, 'rgba(4, 120, 87, 0.2)');
+          ctx.fillStyle = greenGrad;
+        } else {
+          const redGrad = ctx.createLinearGradient(x, y, x + cellWidth, y + cellHeight);
+          redGrad.addColorStop(0, 'rgba(239, 68, 68, 0.2)');
+          redGrad.addColorStop(1, 'rgba(185, 28, 28, 0.2)');
+          ctx.fillStyle = redGrad;
+        }
+        
+        drawRoundRect(x, y, cellWidth, cellHeight, 20);
+        ctx.fill();
+
+        ctx.strokeStyle = isAvailable ? 'rgba(16, 185, 129, 0.5)' : 'rgba(239, 68, 68, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        ctx.fillStyle = isAvailable ? '#10b981' : '#ef4444';
+        ctx.font = '700 64px "Space Grotesk", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(String(ponto.numero).padStart(2, '0'), x + cellWidth/2, y + cellHeight/2 + 10);
+
+        ctx.font = '600 16px Inter, sans-serif';
+        ctx.fillStyle = isAvailable ? '#10b981' : '#ef4444';
+        ctx.fillText(
+          isAvailable ? 'DISPONÍVEL' : 'INDISPONÍVEL',
+          x + cellWidth/2,
+          y + cellHeight - 25
+        );
+      });
+
+      const precoY = gridStartY + 5 * (cellHeight + gap) + 40;
+      
+      ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
+      drawRoundRect(100, precoY, width - 200, 100, 24);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(139, 92, 246, 0.4)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      ctx.fillStyle = '#c4b5fd';
+      ctx.font = '500 24px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('VALOR POR NÚMERO', width/2, precoY + 38);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 44px "Space Grotesk", sans-serif';
+      ctx.fillText('R$ 10,00', width/2, precoY + 85);
+
+      const pixY = precoY + 140;
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '700 28px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PAGAMENTO VIA PIX', width/2, pixY);
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      drawRoundRect(100, pixY + 25, width - 200, 90, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(251, 191, 36, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([8, 6]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '500 18px Inter, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('CHAVE PIX', width/2, pixY + 55);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '600 24px "Space Grotesk", monospace';
+      
+      let chavePix = rifa.chave_pix || 'Não informada';
+      if (chavePix.length > 40) {
+        chavePix = chavePix.substring(0, 37) + '...';
+      }
+      ctx.fillText(chavePix, width/2, pixY + 92);
+
+      const footerY = pixY + 160;
+      
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(100, footerY);
+      ctx.lineTo(width - 100, footerY);
+      ctx.stroke();
+
+      ctx.fillStyle = '#a78bfa';
+      ctx.font = '700 28px "Space Grotesk", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🎟️ RIFA UNIVERSITÁRIA', width/2, footerY + 50);
+
+      ctx.fillStyle = '#71717a';
+      ctx.font = '500 20px Inter, sans-serif';
+      ctx.fillText('Ciências da Computação • 7/8º Período', width/2, footerY + 85);
+
+      ctx.fillStyle = '#52525b';
+      ctx.font = '500 18px Inter, sans-serif';
+      ctx.fillText('Válido até 30/07/2026', width/2, footerY + 115);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Falha ao gerar imagem'));
+        }
+      }, 'image/png', 0.95);
+
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
+function downloadShareImage() {
+  if (!currentShareImageBlob || !currentShareRifa) {
+    toast('Imagem não disponível', 'error');
+    return;
+  }
+
+  const url = URL.createObjectURL(currentShareImageBlob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `rifa-${currentShareRifa.numero_card}-${currentShareRifa.responsavel_nome || 'rifa'}.png`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  toast('✅ Imagem baixada! Agora é só postar no status', 'success');
+}
+
+async function nativeShareImage() {
+  if (!currentShareImageBlob || !currentShareRifa) {
+    toast('Imagem não disponível', 'error');
+    return;
+  }
+
+  if (navigator.canShare) {
+    const file = new File(
+      [currentShareImageBlob],
+      `rifa-${currentShareRifa.numero_card}.png`,
+      { type: 'image/png' }
+    );
+
+    if (navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          files: [file],
+          title: `Rifa #${currentShareRifa.numero_card}`,
+          text: `Confira a Rifa #${currentShareRifa.numero_card} - ${currentShareRifa.responsavel_nome}! Apenas R$ 10,00 por número. Prêmio: R$ 300,00!`
+        });
+        toast('Compartilhado com sucesso!', 'success');
+        return;
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error('Erro ao compartilhar:', err);
+        }
+        return;
+      }
+    }
+  }
+
+  toast('Seu navegador não suporta compartilhamento direto. Baixando imagem...', 'info', 4000);
+  setTimeout(() => downloadShareImage(), 500);
+}
+
+function copyShareLink() {
+  if (!currentShareRifa) return;
+  
+  const siteUrl = getSiteUrl();
+  const url = `${siteUrl}#rifa=${currentShareRifa.numero_card}`;
+  
   navigator.clipboard.writeText(url).then(() => {
-    toast(`Link da rifa #${numeroCard} copiado!`, 'success');
+    toast('Link da rifa copiado!', 'success');
   }).catch(() => {
     toast('Não foi possível copiar o link', 'error');
   });
@@ -1645,7 +2148,6 @@ async function loadDashboardUser() {
 
     if (errPontos) throw errPontos;
 
-    // Atualiza cache de pontos - ID é UUID (string)
     state.pontosCache.clear();
     pontos.forEach(p => state.pontosCache.set(p.id, p));
 
@@ -1709,7 +2211,6 @@ async function loadDashboardUser() {
       const tbody = $('#pendentesBody');
       pendentesList.forEach(p => {
         const tr = document.createElement('tr');
-        // IMPORTANTE: p.id é UUID (string), não converter para número!
         tr.innerHTML = `
           <td><strong>${p.numero}</strong></td>
           <td>${escapeHtml(p.comprador_nome || '-')}</td>
@@ -1759,19 +2260,15 @@ async function loadDashboardUser() {
   }
 }
 
-// DELEGAÇÃO DE EVENTOS - TRATA ID COMO STRING (UUID)
 document.addEventListener('click', async (e) => {
   const btn = e.target.closest('[data-action]');
   if (!btn) return;
 
   const action = btn.dataset.action;
-  // IMPORTANTE: NÃO converter para número! O ID é UUID (string)
   const pontoId = btn.dataset.pontoId;
   
-  console.log('🔍 Debug - Ação:', action, 'Ponto ID:', pontoId, 'Tipo:', typeof pontoId);
-  
   if (!pontoId || pontoId === 'undefined') {
-    console.error('❌ ID inválido:', btn.dataset.pontoId);
+    console.error(' ID inválido:', btn.dataset.pontoId);
     toast('Erro: ID do número inválido', 'error');
     return;
   }
@@ -1789,59 +2286,35 @@ async function confirmarPagamento(pontoId) {
     return;
   }
 
-  console.log('✅ Confirmando pagamento para ponto ID:', pontoId);
-
   let ponto = state.pontosCache.get(pontoId);
   
   if (!ponto) {
-    console.log('⚠️ Ponto não está no cache, buscando no banco...');
     try {
-      // IMPORTANTE: passa o ID como string (UUID)
       const { data, error } = await supabaseClient
         .from('pontos')
         .select('*')
         .eq('id', pontoId)
         .single();
       
-      if (error) {
-        console.error('❌ Erro ao buscar ponto:', error);
-        toast('Erro ao buscar dados do número: ' + error.message, 'error');
+      if (error || !data) {
+        toast('Número não encontrado', 'error');
         return;
       }
-      
-      if (!data) {
-        console.error('❌ Ponto não encontrado:', pontoId);
-        toast('Número não encontrado no banco de dados', 'error');
-        return;
-      }
-      
       ponto = data;
-      console.log('✅ Ponto encontrado:', ponto);
     } catch (err) {
-      console.error('❌ Exceção ao buscar ponto:', err);
+      console.error(err);
       toast('Erro ao buscar dados do número', 'error');
       return;
     }
-  } else {
-    console.log('✅ Ponto encontrado no cache:', ponto);
   }
 
   const nome = ponto.comprador_nome || 'Não informado';
   const metodo = ponto.metodo_pagamento || 'Não informado';
   const numero = ponto.numero;
 
-  const confirmMsg = `Confirmar recebimento do pagamento?\n\n` +
-                     `• Número: ${numero}\n` +
-                     `• Comprador: ${nome}\n` +
-                     `• Método: ${metodo}\n` +
-                     `• Valor: ${fmtBRL(PRECO_NUMERO)}`;
-
-  if (!confirm(confirmMsg)) return;
+  if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(PRECO_NUMERO)}) via ${metodo}?`)) return;
 
   try {
-    console.log('🔄 Atualizando ponto ID:', pontoId, 'para status: pago');
-    
-    // IMPORTANTE: passa o ID como string (UUID)
     const { data, error } = await supabaseClient
       .from('pontos')
       .update({ status: 'pago' })
@@ -1850,12 +2323,9 @@ async function confirmarPagamento(pontoId) {
       .single();
 
     if (error) {
-      console.error('❌ Erro ao atualizar ponto:', error);
       toast('Erro ao confirmar pagamento: ' + error.message, 'error');
       return;
     }
-
-    console.log('✅ Pagamento confirmado:', data);
 
     $('#reciboContent').innerHTML = `
       <div style="display: flex; flex-direction: column; gap: 8px;">
@@ -1871,7 +2341,7 @@ async function confirmarPagamento(pontoId) {
     toast(`✅ Número ${numero} confirmado como pago!`, 'success');
     loadDashboardUser();
   } catch (err) {
-    console.error('❌ Exceção ao confirmar pagamento:', err);
+    console.error(err);
     toast('Erro ao confirmar pagamento', 'error');
   }
 }
@@ -1882,14 +2352,10 @@ async function liberarNumero(pontoId) {
     return;
   }
 
-  console.log('🔄 Liberando ponto ID:', pontoId);
-
   let ponto = state.pontosCache.get(pontoId);
   
   if (!ponto) {
-    console.log('⚠️ Ponto não está no cache, buscando no banco...');
     try {
-      // IMPORTANTE: passa o ID como string (UUID)
       const { data, error } = await supabaseClient
         .from('pontos')
         .select('*')
@@ -1897,13 +2363,12 @@ async function liberarNumero(pontoId) {
         .single();
       
       if (error || !data) {
-        console.error('❌ Erro ao buscar ponto:', error);
         toast('Número não encontrado', 'error');
         return;
       }
       ponto = data;
     } catch (err) {
-      console.error('❌ Exceção ao buscar ponto:', err);
+      console.error(err);
       toast('Erro ao buscar dados', 'error');
       return;
     }
@@ -1914,7 +2379,6 @@ async function liberarNumero(pontoId) {
   if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível para venda.`)) return;
 
   try {
-    // IMPORTANTE: passa o ID como string (UUID)
     const { error } = await supabaseClient
       .from('pontos')
       .update({
