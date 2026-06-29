@@ -16,6 +16,9 @@
 <!-- Supabase JS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<!-- QRCode.js Library -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <style>
 /* =========================================================
    DESIGN SYSTEM - VARIÁVEIS GLOBAIS
@@ -986,6 +989,58 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   color: var(--accent-gold);
 }
 
+/* Checkout Section */
+.checkout-section {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1));
+  border: 2px solid var(--primary-500);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  margin-top: 24px;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.checkout-section h4 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.checkout-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  background: rgba(0,0,0,0.3);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+.checkout-total .label { font-size: 14px; color: var(--neutral-400); }
+.checkout-total .value { 
+  font-family: var(--font-display);
+  font-size: 28px; 
+  font-weight: 700; 
+  color: var(--accent-gold);
+}
+.checkout-numeros {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.numero-tag {
+  background: var(--primary-500);
+  color: white;
+  padding: 6px 12px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
 @media (max-width: 640px) {
   .header { padding: 14px 18px; }
   .brand-text h1 { font-size: 15px; }
@@ -1025,7 +1080,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <span class="dot"></span>
         <span>Rifas Ativas • Prazo até 30/07/2026</span>
       </div>
-      <h2>Concorra ao prêmio de R$ 300 REAIS</h2>
+      <h2>Concorra ao prêmio de R$300.</h2>
       <p>Escolha sua rifa, selecione os números da sorte e pague via PIX ou em espécie. Cada número custa apenas <strong style="color: var(--accent-gold)">R$ 10,00</strong>.</p>
     </div>
 
@@ -1073,7 +1128,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       <div class="pix-info">
         <div class="pix-box">
           <div class="label"><i class="ph-bold ph-qr-code"></i> QR Code PIX</div>
-          <img id="rifaQrCode" src="" alt="QR Code PIX" onerror="this.style.display='none'">
+          <div id="qrcode-container" style="background: white; padding: 16px; border-radius: 8px; display: inline-block; margin: 12px auto;"></div>
         </div>
         <div class="pix-box">
           <div class="label"><i class="ph-bold ph-key"></i> Chave PIX</div>
@@ -1095,13 +1150,17 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <div class="legend-item"><span class="legend-dot pend"></span> Pendente</div>
         <div class="legend-item"><span class="legend-dot pg"></span> Pago</div>
       </div>
-      <div class="selection-summary" id="selectionSummary" style="display:none">
-        <div class="info">
-          <strong id="totalSelecionado">R$ 0,00</strong>
-          <span id="qtdSelecionada">0 números selecionados</span>
+      
+      <!-- CHECKOUT SECTION -->
+      <div class="checkout-section" id="checkoutSection" style="display: none;">
+        <h4><i class="ph-bold ph-shopping-cart"></i> Resumo da Compra</h4>
+        <div class="checkout-numeros" id="checkoutNumeros"></div>
+        <div class="checkout-total">
+          <span class="label">Total a pagar:</span>
+          <span class="value" id="checkoutTotal">R$ 0,00</span>
         </div>
-        <button class="btn btn-gold btn-lg" onclick="openCheckoutModal()">
-          <i class="ph-bold ph-shopping-cart"></i> Avançar
+        <button class="btn btn-gold btn-lg" onclick="openCheckoutModal()" style="width: 100%; justify-content: center;">
+          <i class="ph-bold ph-credit-card"></i> Finalizar Compra
         </button>
       </div>
     </div>
@@ -1127,7 +1186,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 
     <div class="panel">
       <div class="panel-header">
-        <h3><i class="ph-bold ph-clock-countdown"></i> Pagamentos Pendentes</h3>
+        <h3><i class="ph-bold ph-clock-countdown"></i> Pagamentos Pendentes de Confirmação</h3>
         <span class="count" id="pendentesCount">0</span>
       </div>
       <div id="pendentesContainer">
@@ -1148,6 +1207,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
               <th>Telefone</th>
               <th>Método</th>
               <th>Status</th>
+              <th>Ações</th>
             </tr>
           </thead>
           <tbody></tbody>
@@ -1241,7 +1301,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
     <div class="modal-header">
       <div class="modal-icon"><i class="ph-bold ph-shopping-cart"></i></div>
       <h3>Finalizar Compra</h3>
-      <p>Preencha seus dados para reservar os números</p>
+      <p>Preencha seus dados para reservar os números selecionados</p>
     </div>
     <form onsubmit="handleCheckout(event)">
       <div class="form-group">
@@ -1254,15 +1314,19 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
       <div class="form-group">
         <label class="form-label">Método de pagamento</label>
-        <select class="form-select" id="checkoutMetodo" required>
+        <select class="form-select" id="checkoutMetodo" required onchange="togglePixInfo()">
           <option value="">Selecione...</option>
-          <option value="PIX">PIX</option>
+          <option value="PIX">PIX (Pagamento imediato)</option>
           <option value="Especie">Espécie (Dinheiro)</option>
         </select>
+        <div class="form-hint" id="pixHint" style="display: none; margin-top: 8px;">
+          <i class="ph-bold ph-info"></i>
+          <span>Após confirmar, você será redirecionado para o PIX. O responsável confirmará o recebimento.</span>
+        </div>
       </div>
       <div class="selection-summary" style="margin-bottom: 20px;">
         <div class="info">
-          <strong id="checkoutTotal">R$ 0,00</strong>
+          <strong id="checkoutTotalModal">R$ 0,00</strong>
           <span id="checkoutQtd">0 números</span>
         </div>
       </div>
@@ -1289,11 +1353,17 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
       <div class="form-group">
         <label class="form-label">Chave PIX</label>
-        <input type="text" class="form-input" id="novoRespPix" placeholder="CPF, e-mail, telefone ou chave aleatória" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">URL do QR Code PIX (opcional)</label>
-        <input type="url" class="form-input" id="novoRespQr" placeholder="https://...">
+        <input type="text" class="form-input" id="novoRespPix" placeholder="CPF, e-mail, telefone ou chave aleatória" required oninput="generateQRCodePreview()">
+        <div class="form-hint">
+          <i class="ph-bold ph-info"></i>
+          <span>O QR Code será gerado automaticamente a partir desta chave.</span>
+        </div>
+        <div id="qrcode-preview" style="margin-top: 12px; text-align: center; display: none;">
+          <div style="background: white; padding: 12px; border-radius: 8px; display: inline-block;">
+            <div id="qrcode-preview-img"></div>
+          </div>
+          <p style="font-size: 11px; color: var(--neutral-400); margin-top: 8px;">Pré-visualização do QR Code</p>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Senha inicial do usuário</label>
@@ -1327,11 +1397,12 @@ tr:hover td { background: rgba(255,255,255,0.02); }
       </div>
       <div class="form-group">
         <label class="form-label">Chave PIX</label>
-        <input type="text" class="form-input" id="editRespPix" required>
-      </div>
-      <div class="form-group">
-        <label class="form-label">URL do QR Code PIX</label>
-        <input type="url" class="form-input" id="editRespQr">
+        <input type="text" class="form-input" id="editRespPix" required oninput="generateEditQRCodePreview()">
+        <div id="qrcode-edit-preview" style="margin-top: 12px; text-align: center; display: none;">
+          <div style="background: white; padding: 12px; border-radius: 8px; display: inline-block;">
+            <div id="qrcode-edit-preview-img"></div>
+          </div>
+        </div>
       </div>
       <div class="form-group">
         <label class="form-label">Status</label>
@@ -1477,6 +1548,55 @@ function copyChavePix() {
   navigator.clipboard.writeText(chave).then(() => {
     toast('Chave PIX copiada!', 'success');
   });
+}
+
+/* =========================================================
+   GERAÇÃO DE QR CODE
+   ========================================================= */
+function generateQRCode(chave, containerId) {
+  const container = $(containerId);
+  if (!container) return;
+  
+  container.innerHTML = '';
+  
+  try {
+    // Gera QR Code usando a biblioteca QRCode.js
+    new QRCode(container, {
+      text: chave,
+      width: 200,
+      height: 200,
+      colorDark: "#000000",
+      colorLight: "#ffffff",
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch (err) {
+    console.error('Erro ao gerar QR Code:', err);
+    container.innerHTML = '<p style="color: var(--danger); font-size: 12px;">Erro ao gerar QR Code</p>';
+  }
+}
+
+function generateQRCodePreview() {
+  const chave = $('#novoRespPix').value.trim();
+  const preview = $('#qrcode-preview');
+  
+  if (chave.length > 3) {
+    preview.style.display = 'block';
+    generateQRCode(chave, '#qrcode-preview-img');
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+function generateEditQRCodePreview() {
+  const chave = $('#editRespPix').value.trim();
+  const preview = $('#qrcode-edit-preview');
+  
+  if (chave.length > 3) {
+    preview.style.display = 'block';
+    generateQRCode(chave, '#qrcode-edit-preview-img');
+  } else {
+    preview.style.display = 'none';
+  }
 }
 
 /* =========================================================
@@ -1719,7 +1839,7 @@ async function loadRifaIndividual(rifaId) {
   }
 
   state.selectedNumeros = [];
-  updateSelectionSummary();
+  updateCheckoutSection();
 
   try {
     const { data: rifa, error } = await supabaseClient
@@ -1743,12 +1863,11 @@ async function loadRifaIndividual(rifaId) {
     $('#rifaInfoResp').textContent = respNome;
     $('#rifaChavePix').textContent = rifa.chave_pix || 'Não informada';
 
-    const qrImg = $('#rifaQrCode');
-    if (rifa.qr_code_url) {
-      qrImg.src = rifa.qr_code_url;
-      qrImg.style.display = 'block';
+    // Gera QR Code se houver chave PIX
+    if (rifa.chave_pix) {
+      generateQRCode(rifa.chave_pix, '#qrcode-container');
     } else {
-      qrImg.style.display = 'none';
+      $('#qrcode-container').innerHTML = '<p style="color: var(--neutral-400); font-size: 12px;">QR Code não disponível</p>';
     }
 
     const isClosed = rifa.status === 'fechada' || state.isEncerrado;
@@ -1808,6 +1927,8 @@ async function loadPontosRifa(rifaId) {
 
       grid.appendChild(btn);
     });
+    
+    updateCheckoutSection();
   } catch (err) {
     console.error(err);
     grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="ph-bold ph-warning"></i><h4>Erro ao carregar números</h4></div>`;
@@ -1825,16 +1946,34 @@ function toggleNumero(pontoId) {
   loadPontosRifa(state.currentRifa.id);
 }
 
-function updateSelectionSummary() {
+function updateCheckoutSection() {
+  const section = $('#checkoutSection');
   const qtd = state.selectedNumeros.length;
+  
+  if (qtd === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
   const total = qtd * PRECO_NUMERO;
-  const summary = $('#selectionSummary');
-  if (qtd > 0) {
-    summary.style.display = 'flex';
-    $('#totalSelecionado').textContent = fmtBRL(total);
-    $('#qtdSelecionada').textContent = `${qtd} número${qtd > 1 ? 's' : ''} selecionado${qtd > 1 ? 's' : ''}`;
+  
+  $('#checkoutTotal').textContent = fmtBRL(total);
+  
+  const numerosContainer = $('#checkoutNumeros');
+  numerosContainer.innerHTML = state.selectedNumeros.map(id => {
+    const ponto = state.pontos.find(p => p.id === id);
+    return ponto ? `<span class="numero-tag">${ponto.numero}</span>` : '';
+  }).join('');
+}
+
+function togglePixInfo() {
+  const metodo = $('#checkoutMetodo').value;
+  const hint = $('#pixHint');
+  if (metodo === 'PIX') {
+    hint.style.display = 'flex';
   } else {
-    summary.style.display = 'none';
+    hint.style.display = 'none';
   }
 }
 
@@ -1844,11 +1983,12 @@ function openCheckoutModal() {
     return;
   }
   const qtd = state.selectedNumeros.length;
-  $('#checkoutTotal').textContent = fmtBRL(qtd * PRECO_NUMERO);
+  $('#checkoutTotalModal').textContent = fmtBRL(qtd * PRECO_NUMERO);
   $('#checkoutQtd').textContent = `${qtd} número${qtd > 1 ? 's' : ''}`;
   $('#checkoutNome').value = '';
   $('#checkoutTel').value = '';
   $('#checkoutMetodo').value = '';
+  togglePixInfo();
   openModal('modalCheckout');
 }
 
@@ -1889,7 +2029,16 @@ async function handleCheckout(e) {
     }
 
     const qtd = state.selectedNumeros.length;
-    toast(`${qtd} número${qtd > 1 ? 's' : ''} reservado${qtd > 1 ? 's' : ''} com sucesso!`, 'success', 5000);
+    const total = fmtBRL(qtd * PRECO_NUMERO);
+    
+    let msg = `${qtd} número${qtd > 1 ? 's' : ''} reservado${qtd > 1 ? 's' : ''} com sucesso!`;
+    if (metodo === 'PIX') {
+      msg += ` Aguarde a confirmação do pagamento pelo responsável.`;
+    } else {
+      msg += ` Combine o pagamento em espécie com o responsável.`;
+    }
+    
+    toast(msg, 'success', 5000);
     closeModal('modalCheckout');
     state.selectedNumeros = [];
     loadPontosRifa(state.currentRifa.id);
@@ -1989,6 +2138,7 @@ async function loadDashboardUser() {
                 <th>Comprador</th>
                 <th>Telefone</th>
                 <th>Método</th>
+                <th>Valor</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -1999,11 +2149,12 @@ async function loadDashboardUser() {
                   <td>${p.comprador_nome || '-'}</td>
                   <td>${p.comprador_telefone || '-'}</td>
                   <td><span class="status-badge ${p.metodo_pagamento === 'PIX' ? 'pago' : 'pendente'}">${p.metodo_pagamento || '-'}</span></td>
+                  <td><strong>${fmtBRL(PRECO_NUMERO)}</strong></td>
                   <td class="actions-cell">
-                    <button class="icon-btn approve" title="Confirmar pagamento" onclick="confirmarPagamento(${p.id}, ${p.numero}, '${(p.comprador_nome||'').replace(/'/g,"\\'")}', ${PRECO_NUMERO}, '${p.metodo_pagamento || ''}')">
+                    <button class="icon-btn approve" title="Confirmar pagamento recebido" onclick="confirmarPagamento(${p.id}, ${p.numero}, '${(p.comprador_nome||'').replace(/'/g,"\\'")}', ${PRECO_NUMERO}, '${p.metodo_pagamento || ''}')">
                       <i class="ph-bold ph-check"></i>
                     </button>
-                    <button class="icon-btn reject" title="Liberar número" onclick="liberarNumero(${p.id}, ${p.numero})">
+                    <button class="icon-btn reject" title="Cancelar/Liberar número" onclick="liberarNumero(${p.id}, ${p.numero})">
                       <i class="ph-bold ph-x"></i>
                     </button>
                   </td>
@@ -2021,6 +2172,16 @@ async function loadDashboardUser() {
         <td>${p.comprador_telefone || '-'}</td>
         <td>${p.metodo_pagamento || '-'}</td>
         <td><span class="status-badge ${p.status}">${p.status}</span></td>
+        <td class="actions-cell">
+          ${p.status === 'pendente' ? `
+            <button class="icon-btn approve" title="Confirmar" onclick="confirmarPagamento(${p.id}, ${p.numero}, '${(p.comprador_nome||'').replace(/'/g,"\\'")}', ${PRECO_NUMERO}, '${p.metodo_pagamento || ''}')">
+              <i class="ph-bold ph-check"></i>
+            </button>
+            <button class="icon-btn reject" title="Liberar" onclick="liberarNumero(${p.id}, ${p.numero})">
+              <i class="ph-bold ph-x"></i>
+            </button>
+          ` : '-'}
+        </td>
       </tr>`).join('');
 
   } catch (err) {
@@ -2035,7 +2196,7 @@ async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
     return;
   }
 
-  if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(valor)})?`)) return;
+  if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(valor)}) via ${metodo}?`)) return;
 
   try {
     const { error } = await supabaseClient
@@ -2070,7 +2231,7 @@ async function liberarNumero(pontoId, numero) {
     return;
   }
 
-  if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível.`)) return;
+  if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível para venda.`)) return;
 
   try {
     const { error } = await supabaseClient
@@ -2208,8 +2369,8 @@ async function loadDashboardAdmin() {
 function openCriarRifaModal() {
   $('#novoRespNome').value = '';
   $('#novoRespPix').value = '';
-  $('#novoRespQr').value = '';
   $('#novoRespSenha').value = '';
+  $('#qrcode-preview').style.display = 'none';
   openModal('modalCriarRifa');
 }
 
@@ -2222,7 +2383,6 @@ async function handleCriarRifa(e) {
 
   const nome = $('#novoRespNome').value.trim();
   const pix = $('#novoRespPix').value.trim();
-  const qr = $('#novoRespQr').value.trim();
   const senha = $('#novoRespSenha').value;
   const btn = $('#btnCriarRifa');
 
@@ -2274,7 +2434,7 @@ async function handleCriarRifa(e) {
         numero_card: numeroCard,
         responsavel_id: usuario.id,
         chave_pix: pix,
-        qr_code_url: qr || null,
+        qr_code_url: null,
         status: 'ativa'
       })
       .select()
@@ -2312,6 +2472,10 @@ async function handleCriarRifa(e) {
           <span class="label">Responsável</span>
           <span class="val" style="font-size: 13px;">${nome}</span>
         </div>
+        <div class="row">
+          <span class="label">Chave PIX</span>
+          <span class="val" style="font-size: 13px;">${pix}</span>
+        </div>
       </div>
       <p style="font-size: 12px; color: var(--warning); margin-top: 12px; display: flex; align-items: center; gap: 6px;">
         <i class="ph-bold ph-warning"></i>
@@ -2338,8 +2502,8 @@ function openEditarRifaModal(rifa) {
   $('#editRifaId').value = rifa.id;
   $('#editRespNome').value = rifa.usuarios?.nome_responsavel || '';
   $('#editRespPix').value = rifa.chave_pix || '';
-  $('#editRespQr').value = rifa.qr_code_url || '';
   $('#editRifaStatus').value = rifa.status;
+  $('#qrcode-edit-preview').style.display = 'none';
   openModal('modalEditarRifa');
 }
 
@@ -2353,7 +2517,6 @@ async function handleEditarRifa(e) {
   const id = $('#editRifaId').value;
   const nome = $('#editRespNome').value.trim();
   const pix = $('#editRespPix').value.trim();
-  const qr = $('#editRespQr').value.trim();
   const status = $('#editRifaStatus').value;
   const btn = $('#btnEditarRifa');
 
@@ -2378,7 +2541,7 @@ async function handleEditarRifa(e) {
 
     const { error: errUpdate } = await supabaseClient
       .from('rifas')
-      .update({ chave_pix: pix, qr_code_url: qr || null, status: status })
+      .update({ chave_pix: pix, status: status })
       .eq('id', id);
 
     if (errUpdate) throw errUpdate;
