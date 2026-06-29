@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rifas Universitárias | Unip 2026</title>
+
+<!-- Fontes -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+<!-- Phosphor Icons -->
+<script src="https://unpkg.com/@phosphor-icons/web@2.0.3"></script>
+
+<!-- Supabase JS -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+/* =========================================================
+   DESIGN SYSTEM - VARIÁVEIS GLOBAIS
+   ========================================================= */
+:root {
+  --primary-50:  #f5f3ff;
+  --primary-100: #ede9fe;
+  --primary-200: #ddd6fe;
+  --primary-300: #c4b5fd;
+  --primary-400: #a78bfa;
+  --primary-500: #8b5cf6;
+  --primary-600: #7c3aed;
+  --primary-700: #6d28d9;
+  --primary-800: #5b21b6;
+  --primary-900: #4c1d95;
+
+  --accent-gold:   #fbbf24;
+  --accent-gold-2: #f59e0b;
+  --accent-cyan:   #22d3ee;
+  --accent-pink:   #ec4899;
+
+  --neutral-50:  #fafafa;
+  --neutral-100: #f4f4f5;
+  --neutral-200: #e4e4e7;
+  --neutral-300: #d4d4d8;
+  --neutral-400: #a1a1aa;
+  --neutral-500: #71717a;
+  --neutral-600: #52525b;
+  --neutral-700: #3f3f46;
+  --neutral-800: #27272a;
+  --neutral-900: #18181b;
+  --neutral-950: #09090b;
+
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger:  #ef4444;
+  --info:    #3b82f6;
+
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-bg-strong: rgba(255, 255, 255, 0.14);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-blur: 20px;
+
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+  --shadow-md: 0 8px 24px rgba(0,0,0,0.12);
+  --shadow-lg: 0 20px 50px rgba(0,0,0,0.25);
+  --shadow-glow: 0 0 40px rgba(139, 92, 246, 0.35);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-display: 'Space Grotesk', 'Inter', sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 22px;
+  --radius-xl: 32px;
+
+  --ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --t-fast: 150ms;
+  --t-base: 250ms;
+  --t-slow: 400ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { height: 100%; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--neutral-50);
+  background: var(--neutral-950);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(139, 92, 246, 0.35) 0%, transparent 45%),
+    radial-gradient(circle at 85% 15%, rgba(236, 72, 153, 0.25) 0%, transparent 40%),
+    radial-gradient(circle at 50% 90%, rgba(34, 211, 238, 0.22) 0%, transparent 45%),
+    linear-gradient(135deg, #0a0118 0%, #1a0b2e 50%, #0f0524 100%);
+  z-index: -2;
+  animation: bgShift 20s ease-in-out infinite alternate;
+}
+
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(255,255,255,0.04) 1px, transparent 0);
+  background-size: 32px 32px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+@keyframes bgShift {
+  0%   { filter: hue-rotate(0deg); }
+  100% { filter: hue-rotate(25deg); }
+}
+
+button { font-family: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+input, select, textarea { font-family: inherit; }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.4); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.6); }
+
+/* HEADER */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  padding: 18px 32px;
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  background: rgba(10, 1, 24, 0.65);
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+}
+.brand-logo {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-pink));
+  display: grid; place-items: center;
+  font-size: 22px;
+  box-shadow: var(--shadow-glow);
+}
+.brand-text h1 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.brand-text p {
+  font-size: 11px;
+  color: var(--neutral-400);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.header-actions { display: flex; gap: 10px; align-items: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  transition: all var(--t-base) var(--ease);
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+  color: white;
+  box-shadow: 0 4px 20px rgba(139, 92, 246, 0.4);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(139, 92, 246, 0.6); }
+.btn-ghost {
+  background: var(--glass-bg);
+  border-color: var(--glass-border);
+  backdrop-filter: blur(10px);
+}
+.btn-ghost:hover { background: var(--glass-bg-strong); }
+.btn-danger { background: linear-gradient(135deg, #ef4444, #b91c1c); color: white; }
+.btn-success { background: linear-gradient(135deg, #10b981, #047857); color: white; }
+.btn-gold {
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-2));
+  color: #1a0b2e;
+  font-weight: 700;
+}
+.btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(251, 191, 36, 0.5); }
+.btn-lg { padding: 14px 26px; font-size: 15px; }
+.btn-sm { padding: 7px 14px; font-size: 13px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+/* LAYOUT */
+.container { max-width: 1280px; margin: 0 auto; padding: 40px 32px 120px; }
+
+.view { display: none; animation: fadeIn var(--t-slow) var(--ease); }
+.view.active { display: block; }
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.hero {
+  text-align: center;
+  padding: 40px 20px 50px;
+}
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 100px;
+  font-size: 12px;
+  color: var(--primary-200);
+  margin-bottom: 20px;
+  backdrop-filter: blur(10px);
+}
+.hero-badge .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 10px var(--success);
+  animation: pulse 2s infinite;
+}
+@keyframes pulse {
+  0%,100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.hero h2 {
+  font-family: var(--font-display);
+  font-size: clamp(32px, 5vw, 56px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff 0%, #c4b5fd 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.hero p {
+  color: var(--neutral-400);
+  font-size: 17px;
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding: 0 4px;
+}
+.section-title h3 {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.section-title .count {
+  font-size: 13px;
+  color: var(--neutral-400);
+  padding: 4px 12px;
+  background: var(--glass-bg);
+  border-radius: 100px;
+  border: 1px solid var(--glass-border);
+}
+
+.rifas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 22px;
+}
+
+.rifa-card {
+  position: relative;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 28px 24px;
+  backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(180%);
+  transition: all var(--t-base) var(--ease);
+  overflow: hidden;
+  cursor: pointer;
+}
+.rifa-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(139,92,246,0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity var(--t-base) var(--ease);
+  pointer-events: none;
+}
+.rifa-card:hover {
+  transform: translateY(-6px);
+  border-color: rgba(139, 92, 246, 0.5);
+  box-shadow: var(--shadow-lg), var(--shadow-glow);
+}
+.rifa-card:hover::before { opacity: 1; }
+
+.rifa-card.closed { opacity: 0.6; cursor: not-allowed; }
+.rifa-card.closed:hover { transform: none; box-shadow: var(--shadow-md); }
+
+.rifa-number {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  line-height: 1;
+  margin-bottom: 14px;
+}
+.rifa-responsavel {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--neutral-100);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rifa-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--neutral-400);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+.rifa-status .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+}
+.rifa-card.closed .rifa-status .dot { background: var(--danger); }
+
+.rifa-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  position: relative;
+  z-index: 2;
+}
+.rifa-actions .btn { flex: 1; justify-content: center; font-size: 13px; padding: 9px 12px; }
+
+.btn-share {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  background: var(--glass-bg-strong);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(10px);
+  display: grid; place-items: center;
+  font-size: 16px;
+  color: var(--primary-200);
+  transition: all var(--t-base) var(--ease);
+  z-index: 3;
+}
+.btn-share:hover {
+  background: var(--primary-500);
+  color: white;
+  transform: scale(1.1) rotate(-10deg);
+  box-shadow: var(--shadow-glow);
+}
+
+.empty-state {
+  text-align: center;
+  padding: 80px 20px;
+  color: var(--neutral-400);
+}
+.empty-state i { font-size: 56px; margin-bottom: 16px; opacity: 0.4; }
+.empty-state h4 { font-size: 18px; color: var(--neutral-200); margin-bottom: 8px; }
+
+/* FAB */
+.fab {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-pink));
+  display: grid; place-items: center;
+  font-size: 26px;
+  color: white;
+  box-shadow: 0 10px 40px rgba(139, 92, 246, 0.6);
+  z-index: 40;
+  transition: all var(--t-base) var(--ease);
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+.fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 14px 50px rgba(139, 92, 246, 0.8);
+  animation: none;
+}
+
+/* MODAL */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 9, 11, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn var(--t-base) var(--ease);
+}
+.modal-overlay.active { display: flex; }
+
+.modal {
+  background: rgba(26, 11, 46, 0.75);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  backdrop-filter: blur(30px) saturate(180%);
+  -webkit-backdrop-filter: blur(30px) saturate(180%);
+  box-shadow: var(--shadow-lg);
+  max-width: 460px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 36px;
+  animation: modalIn var(--t-slow) var(--ease);
+  position: relative;
+}
+.modal.modal-lg { max-width: 720px; }
+.modal.modal-xl { max-width: 960px; }
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.92) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  display: grid; place-items: center;
+  font-size: 18px;
+  transition: all var(--t-base) var(--ease);
+}
+.modal-close:hover { background: var(--danger); color: white; transform: rotate(90deg); }
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 28px;
+}
+.modal-icon {
+  width: 64px; height: 64px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-pink));
+  display: grid; place-items: center;
+  font-size: 30px;
+  margin: 0 auto 18px;
+  box-shadow: var(--shadow-glow);
+}
+.modal-header h3 {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+.modal-header p { color: var(--neutral-400); font-size: 14px; }
+
+/* FORMS */
+.form-group { margin-bottom: 18px; }
+.form-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--neutral-200);
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.form-input, .form-select {
+  width: 100%;
+  padding: 13px 16px;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  color: var(--neutral-50);
+  font-size: 15px;
+  transition: all var(--t-base) var(--ease);
+  outline: none;
+}
+.form-input::placeholder { color: var(--neutral-500); }
+.form-input:focus, .form-select:focus {
+  border-color: var(--primary-400);
+  background: rgba(0,0,0,0.35);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+}
+.form-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23a1a1aa' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  padding-right: 44px;
+}
+.form-select option { background: #1a0b2e; color: white; }
+
+.form-hint {
+  font-size: 12px;
+  color: var(--neutral-400);
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.form-hint i { color: var(--warning); }
+
+/* VIEW - RIFA INDIVIDUAL */
+.rifa-view-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.back-btn {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  display: grid; place-items: center;
+  font-size: 20px;
+  transition: all var(--t-base) var(--ease);
+}
+.back-btn:hover { background: var(--primary-500); transform: translateX(-4px); }
+
+.rifa-hero {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  backdrop-filter: blur(var(--glass-blur));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  margin-bottom: 32px;
+}
+@media (max-width: 768px) { .rifa-hero { grid-template-columns: 1fr; } }
+
+.rifa-info h2 {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+.rifa-info .meta {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  color: var(--neutral-400);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+.rifa-info .meta span { display: inline-flex; align-items: center; gap: 6px; }
+
+.pix-box {
+  background: rgba(0,0,0,0.3);
+  border: 1px dashed var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.pix-box .label {
+  font-size: 11px;
+  color: var(--neutral-400);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.pix-box .value {
+  font-family: 'Space Grotesk', monospace;
+  font-size: 15px;
+  color: var(--accent-gold);
+  word-break: break-all;
+  margin-bottom: 10px;
+}
+.pix-box img {
+  width: 100%;
+  max-width: 220px;
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+  background: white;
+  padding: 8px;
+}
+
+.numeros-section {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  padding: 32px;
+  backdrop-filter: blur(var(--glass-blur));
+}
+.numeros-section h3 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.numeros-section .subtitle {
+  color: var(--neutral-400);
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.numeros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.numero-btn {
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  background: rgba(0,0,0,0.25);
+  border: 2px solid var(--glass-border);
+  display: grid; place-items: center;
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+  transition: all var(--t-base) var(--ease);
+  position: relative;
+}
+.numero-btn:hover:not(:disabled) {
+  border-color: var(--primary-400);
+  background: rgba(139, 92, 246, 0.15);
+  transform: scale(1.05);
+}
+.numero-btn.selected {
+  background: linear-gradient(135deg, var(--primary-500), var(--primary-700));
+  border-color: var(--primary-300);
+  color: white;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+  transform: scale(1.05);
+}
+.numero-btn.pendente {
+  background: linear-gradient(135deg, var(--warning), #b45309);
+  border-color: var(--warning);
+  color: white;
+  cursor: not-allowed;
+}
+.numero-btn.pago {
+  background: linear-gradient(135deg, var(--success), #047857);
+  border-color: var(--success);
+  color: white;
+  cursor: not-allowed;
+}
+.numero-btn:disabled { cursor: not-allowed; }
+.numero-btn .tag {
+  position: absolute;
+  top: 6px; right: 6px;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 100px;
+  background: rgba(0,0,0,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.legend {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  padding-top: 20px;
+  border-top: 1px solid var(--glass-border);
+  margin-bottom: 20px;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--neutral-300); }
+.legend-dot { width: 14px; height: 14px; border-radius: 4px; }
+.legend-dot.disp { background: rgba(0,0,0,0.25); border: 2px solid var(--glass-border); }
+.legend-dot.pend { background: var(--warning); }
+.legend-dot.pg   { background: var(--success); }
+.legend-dot.sel  { background: var(--primary-500); }
+
+.selection-summary {
+  background: rgba(0,0,0,0.3);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.selection-summary .info { display: flex; flex-direction: column; gap: 4px; }
+.selection-summary .info strong { font-family: var(--font-display); font-size: 22px; color: var(--accent-gold); }
+.selection-summary .info span { font-size: 13px; color: var(--neutral-400); }
+
+/* DASHBOARD */
+.dashboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.dashboard-header h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 700;
+}
+.dashboard-header .user-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 100px;
+  font-size: 13px;
+  backdrop-filter: blur(10px);
+}
+.user-badge .avatar {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-500), var(--accent-pink));
+  display: grid; place-items: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 18px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  backdrop-filter: blur(var(--glass-blur));
+  transition: all var(--t-base) var(--ease);
+  position: relative;
+  overflow: hidden;
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--primary-500), var(--accent-pink));
+}
+.stat-card.gold::before { background: linear-gradient(90deg, var(--accent-gold), var(--accent-gold-2)); }
+.stat-card.green::before { background: linear-gradient(90deg, var(--success), #047857); }
+.stat-card.orange::before { background: linear-gradient(90deg, var(--warning), #b45309); }
+.stat-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-md); }
+
+.stat-card .label {
+  font-size: 12px;
+  color: var(--neutral-400);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-card .value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.stat-card .sub { font-size: 12px; color: var(--neutral-400); margin-top: 4px; }
+
+.panel {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  backdrop-filter: blur(var(--glass-blur));
+  margin-bottom: 24px;
+}
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--glass-border);
+}
+.panel-header h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.table-wrapper { overflow-x: auto; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+th, td {
+  padding: 14px 12px;
+  text-align: left;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--neutral-400);
+  font-weight: 600;
+}
+tr:hover td { background: rgba(255,255,255,0.02); }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.status-badge.disponivel { background: rgba(113,113,122,0.2); color: var(--neutral-300); }
+.status-badge.pendente   { background: rgba(245,158,11,0.2); color: var(--warning); }
+.status-badge.pago       { background: rgba(16,185,129,0.2); color: var(--success); }
+
+.actions-cell { display: flex; gap: 6px; }
+.icon-btn {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  display: grid; place-items: center;
+  font-size: 14px;
+  transition: all var(--t-base) var(--ease);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+}
+.icon-btn:hover { transform: scale(1.1); }
+.icon-btn.approve { color: var(--success); }
+.icon-btn.approve:hover { background: var(--success); color: white; }
+.icon-btn.reject  { color: var(--danger); }
+.icon-btn.reject:hover { background: var(--danger); color: white; }
+.icon-btn.edit    { color: var(--info); }
+.icon-btn.edit:hover { background: var(--info); color: white; }
+.icon-btn.delete  { color: var(--danger); }
+.icon-btn.delete:hover { background: var(--danger); color: white; }
+
+/* TOAST */
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+.toast {
+  background: rgba(26, 11, 46, 0.9);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  backdrop-filter: blur(20px);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 280px;
+  max-width: 400px;
+  box-shadow: var(--shadow-lg);
+  animation: toastIn var(--t-base) var(--ease);
+  pointer-events: auto;
+}
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(100px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error   { border-left: 3px solid var(--danger); }
+.toast.info    { border-left: 3px solid var(--info); }
+.toast i { font-size: 20px; }
+.toast.success i { color: var(--success); }
+.toast.error i   { color: var(--danger); }
+.toast.info i    { color: var(--info); }
+.toast .msg { font-size: 14px; flex: 1; }
+
+.loader {
+  display: inline-block;
+  width: 20px; height: 20px;
+  border: 2.5px solid rgba(255,255,255,0.2);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loader-full {
+  display: grid;
+  place-items: center;
+  padding: 60px 20px;
+  color: var(--neutral-400);
+}
+.loader-full .loader { width: 40px; height: 40px; margin-bottom: 16px; }
+
+.encerrado-banner {
+  background: linear-gradient(135deg, rgba(239,68,68,0.15), rgba(185,28,28,0.15));
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  text-align: center;
+  margin-bottom: 24px;
+  backdrop-filter: blur(10px);
+}
+.encerrado-banner i { font-size: 40px; color: var(--danger); margin-bottom: 10px; }
+.encerrado-banner h3 { font-family: var(--font-display); font-size: 22px; margin-bottom: 6px; }
+.encerrado-banner p { color: var(--neutral-400); font-size: 14px; }
+
+/* Caixa de credenciais exibidas ao admin */
+.credentials-box {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  border-radius: var(--radius-md);
+  padding: 18px;
+  margin-top: 16px;
+  font-family: 'Space Grotesk', monospace;
+}
+.credentials-box .row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed rgba(251, 191, 36, 0.2);
+}
+.credentials-box .row:last-child { border-bottom: none; }
+.credentials-box .label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--neutral-400);
+  font-family: var(--font-sans);
+}
+.credentials-box .val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-gold);
+}
+
+@media (max-width: 640px) {
+  .header { padding: 14px 18px; }
+  .brand-text h1 { font-size: 15px; }
+  .brand-text p { font-size: 10px; }
+  .container { padding: 24px 18px 100px; }
+  .hero { padding: 20px 10px 30px; }
+  .hero p { font-size: 15px; }
+  .rifa-hero { padding: 22px; }
+  .numeros-section, .panel { padding: 20px; }
+  .numeros-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+  .numero-btn { font-size: 22px; }
+  .modal { padding: 26px 22px; }
+  .fab { width: 56px; height: 56px; font-size: 22px; bottom: 20px; right: 20px; }
+  .dashboard-header h2 { font-size: 22px; }
+  .stat-card .value { font-size: 26px; }
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="brand" onclick="navigateTo('home')">
+    <div class="brand-logo"><i class="ph-bold ph-ticket"></i></div>
+    <div class="brand-text">
+      <h1>Rifa Universitária</h1>
+      <p>Ciências da Computação - 7/8º Período | Unip • 2026</p>
+    </div>
+  </div>
+  <div class="header-actions" id="headerActions"></div>
+</header>
+
+<main class="container">
+  <!-- HOME -->
+  <section class="view active" id="view-home">
+    <div class="hero">
+      <div class="hero-badge">
+        <span class="dot"></span>
+        <span>Rifas Ativas • Prazo até 30/07/2026</span>
+      </div>
+      <h2>Concorra a um prêmio de R$300</h2>
+      <p>Escolha sua rifa, selecione os números da sorte e pague via PIX ou em espécie. Cada número custa apenas <strong style="color: var(--accent-gold)">R$ 10,00</strong>.</p>
+    </div>
+
+    <div id="encerradoBanner" style="display:none"></div>
+
+    <div class="section-title">
+      <h3>Rifas Disponíveis</h3>
+      <span class="count" id="rifasCount">0 rifas</span>
+    </div>
+
+    <div id="rifasGridContainer">
+      <div class="loader-full">
+        <div class="loader"></div>
+        <p>Carregando rifas...</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIFA INDIVIDUAL -->
+  <section class="view" id="view-rifa">
+    <div class="rifa-view-header">
+      <button class="back-btn" onclick="navigateTo('home')">
+        <i class="ph-bold ph-arrow-left"></i>
+      </button>
+      <div>
+        <h2 id="rifaViewTitle" style="font-family: var(--font-display); font-size: 22px;">Rifa</h2>
+        <p id="rifaViewSubtitle" style="color: var(--neutral-400); font-size: 14px;"></p>
+      </div>
+    </div>
+
+    <div id="rifaEncerradoBanner" style="display:none"></div>
+
+    <div class="rifa-hero">
+      <div class="rifa-info">
+        <h2 id="rifaInfoTitle">Rifa #000</h2>
+        <div class="meta">
+          <span><i class="ph-bold ph-user"></i> <span id="rifaInfoResp">-</span></span>
+          <span><i class="ph-bold ph-currency-circle-dollar"></i> R$ 10,00 / número</span>
+          <span id="rifaInfoStatus"><i class="ph-bold ph-circle"></i> Ativa</span>
+        </div>
+        <p style="color: var(--neutral-300); font-size: 14px; line-height: 1.6;">
+          Selecione abaixo os números desejados. Após a seleção, informe seus dados e o método de pagamento. Os números ficarão <strong>pendentes</strong> até a confirmação pelo responsável.
+        </p>
+      </div>
+      <div class="pix-info">
+        <div class="pix-box">
+          <div class="label"><i class="ph-bold ph-qr-code"></i> QR Code PIX</div>
+          <img id="rifaQrCode" src="" alt="QR Code PIX" onerror="this.style.display='none'">
+        </div>
+        <div class="pix-box">
+          <div class="label"><i class="ph-bold ph-key"></i> Chave PIX</div>
+          <div class="value" id="rifaChavePix">-</div>
+          <button class="btn btn-ghost btn-sm" onclick="copyChavePix()">
+            <i class="ph-bold ph-copy"></i> Copiar chave
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="numeros-section">
+      <h3>Selecione seus números da sorte</h3>
+      <p class="subtitle">Clique nos números disponíveis para selecioná-los</p>
+      <div class="numeros-grid" id="numerosGrid"></div>
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot disp"></span> Disponível</div>
+        <div class="legend-item"><span class="legend-dot sel"></span> Selecionado</div>
+        <div class="legend-item"><span class="legend-dot pend"></span> Pendente</div>
+        <div class="legend-item"><span class="legend-dot pg"></span> Pago</div>
+      </div>
+      <div class="selection-summary" id="selectionSummary" style="display:none">
+        <div class="info">
+          <strong id="totalSelecionado">R$ 0,00</strong>
+          <span id="qtdSelecionada">0 números selecionados</span>
+        </div>
+        <button class="btn btn-gold btn-lg" onclick="openCheckoutModal()">
+          <i class="ph-bold ph-shopping-cart"></i> Avançar
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD USUÁRIO -->
+  <section class="view" id="view-dashboard-user">
+    <div class="dashboard-header">
+      <div>
+        <h2>Meu Dashboard</h2>
+        <p style="color: var(--neutral-400); font-size: 14px;">Gerencie sua rifa e acompanhe as vendas</p>
+      </div>
+      <div class="user-badge">
+        <div class="avatar" id="userAvatar">U</div>
+        <div>
+          <div style="font-weight: 600;" id="userName">Usuário</div>
+          <div style="font-size: 11px; color: var(--neutral-400);">Dono da Rifa</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="userStats"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3><i class="ph-bold ph-clock-countdown"></i> Pagamentos Pendentes</h3>
+        <span class="count" id="pendentesCount">0</span>
+      </div>
+      <div id="pendentesContainer">
+        <div class="loader-full"><div class="loader"></div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3><i class="ph-bold ph-list-checks"></i> Todos os Números</h3>
+      </div>
+      <div class="table-wrapper">
+        <table id="userNumerosTable">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Comprador</th>
+              <th>Telefone</th>
+              <th>Método</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- DASHBOARD ADMIN -->
+  <section class="view" id="view-dashboard-admin">
+    <div class="dashboard-header">
+      <div>
+        <h2>Dashboard Master</h2>
+        <p style="color: var(--neutral-400); font-size: 14px;">Visão geral de todas as rifas do sistema</p>
+      </div>
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn btn-gold" onclick="openCriarRifaModal()">
+          <i class="ph-bold ph-plus-circle"></i> Nova Rifa
+        </button>
+        <div class="user-badge">
+          <div class="avatar" style="background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-2));">A</div>
+          <div>
+            <div style="font-weight: 600;">Administrador</div>
+            <div style="font-size: 11px; color: var(--neutral-400);">Master</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-grid" id="adminStats"></div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <h3><i class="ph-bold ph-cards-three"></i> Todas as Rifas</h3>
+        <span class="count" id="adminRifasCount">0</span>
+      </div>
+      <div class="table-wrapper">
+        <table id="adminRifasTable">
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Responsável</th>
+              <th>Chave PIX</th>
+              <th>Vendidos</th>
+              <th>Pendentes</th>
+              <th>Arrecadado</th>
+              <th>Status</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<button class="fab" id="fabLogin" onclick="openLoginModal()" title="Entrar">
+  <i class="ph-bold ph-user-circle"></i>
+</button>
+
+<!-- MODAL LOGIN -->
+<div class="modal-overlay" id="modalLogin">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalLogin')"><i class="ph-bold ph-x"></i></button>
+    <div class="modal-header">
+      <div class="modal-icon"><i class="ph-bold ph-sign-in"></i></div>
+      <h3>Acessar Sistema</h3>
+      <p>Entre com suas credenciais</p>
+    </div>
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label class="form-label">Usuário</label>
+        <input type="text" class="form-input" id="loginUser" placeholder="Ex: 001" required autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha</label>
+        <input type="password" class="form-input" id="loginPass" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; justify-content: center;" id="btnLogin">
+        <i class="ph-bold ph-arrow-right"></i> Entrar
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL CHECKOUT -->
+<div class="modal-overlay" id="modalCheckout">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalCheckout')"><i class="ph-bold ph-x"></i></button>
+    <div class="modal-header">
+      <div class="modal-icon"><i class="ph-bold ph-shopping-cart"></i></div>
+      <h3>Finalizar Compra</h3>
+      <p>Preencha seus dados para reservar os números</p>
+    </div>
+    <form onsubmit="handleCheckout(event)">
+      <div class="form-group">
+        <label class="form-label">Seu nome completo</label>
+        <input type="text" class="form-input" id="checkoutNome" placeholder="Ex: João da Silva" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Telefone / WhatsApp</label>
+        <input type="tel" class="form-input" id="checkoutTel" placeholder="(00) 00000-0000" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Método de pagamento</label>
+        <select class="form-select" id="checkoutMetodo" required>
+          <option value="">Selecione...</option>
+          <option value="PIX">PIX</option>
+          <option value="Especie">Espécie (Dinheiro)</option>
+        </select>
+      </div>
+      <div class="selection-summary" style="margin-bottom: 20px;">
+        <div class="info">
+          <strong id="checkoutTotal">R$ 0,00</strong>
+          <span id="checkoutQtd">0 números</span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-gold btn-lg" style="width: 100%; justify-content: center;" id="btnCheckout">
+        <i class="ph-bold ph-check-circle"></i> Confirmar Reserva
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL CRIAR RIFA -->
+<div class="modal-overlay" id="modalCriarRifa">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalCriarRifa')"><i class="ph-bold ph-x"></i></button>
+    <div class="modal-header">
+      <div class="modal-icon"><i class="ph-bold ph-plus-circle"></i></div>
+      <h3>Criar Nova Rifa</h3>
+      <p>Cadastre um novo responsável</p>
+    </div>
+    <form onsubmit="handleCriarRifa(event)">
+      <div class="form-group">
+        <label class="form-label">Nome do responsável</label>
+        <input type="text" class="form-input" id="novoRespNome" placeholder="Ex: Maria Silva" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chave PIX</label>
+        <input type="text" class="form-input" id="novoRespPix" placeholder="CPF, e-mail, telefone ou chave aleatória" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL do QR Code PIX (opcional)</label>
+        <input type="url" class="form-input" id="novoRespQr" placeholder="https://...">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Senha inicial do usuário</label>
+        <input type="text" class="form-input" id="novoRespSenha" placeholder="Defina uma senha" required minlength="4">
+        <div class="form-hint">
+          <i class="ph-bold ph-shield-warning"></i>
+          <span>A senha será exibida apenas uma vez após a criação. Anote para repassar ao responsável.</span>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-gold btn-lg" style="width: 100%; justify-content: center;" id="btnCriarRifa">
+        <i class="ph-bold ph-sparkle"></i> Criar Rifa
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL EDITAR RIFA -->
+<div class="modal-overlay" id="modalEditarRifa">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalEditarRifa')"><i class="ph-bold ph-x"></i></button>
+    <div class="modal-header">
+      <div class="modal-icon"><i class="ph-bold ph-pencil-simple"></i></div>
+      <h3>Editar Rifa</h3>
+      <p>Atualize os dados da rifa</p>
+    </div>
+    <form onsubmit="handleEditarRifa(event)">
+      <input type="hidden" id="editRifaId">
+      <div class="form-group">
+        <label class="form-label">Nome do responsável</label>
+        <input type="text" class="form-input" id="editRespNome" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Chave PIX</label>
+        <input type="text" class="form-input" id="editRespPix" required>
+      </div>
+      <div class="form-group">
+        <label class="form-label">URL do QR Code PIX</label>
+        <input type="url" class="form-input" id="editRespQr">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="editRifaStatus">
+          <option value="ativa">Ativa</option>
+          <option value="fechada">Fechada</option>
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary btn-lg" style="width: 100%; justify-content: center;" id="btnEditarRifa">
+        <i class="ph-bold ph-check-circle"></i> Salvar Alterações
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL RECIBO -->
+<div class="modal-overlay" id="modalRecibo">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('modalRecibo')"><i class="ph-bold ph-x"></i></button>
+    <div class="modal-header">
+      <div class="modal-icon" style="background: linear-gradient(135deg, var(--success), #047857);">
+        <i class="ph-bold ph-receipt"></i>
+      </div>
+      <h3>Operação Realizada</h3>
+      <p>Recibo da ação</p>
+    </div>
+    <div id="reciboContent" style="background: rgba(0,0,0,0.25); border-radius: var(--radius-md); padding: 20px; font-size: 14px; line-height: 1.8;"></div>
+    <button class="btn btn-primary btn-lg" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="closeModal('modalRecibo')">
+      <i class="ph-bold ph-check"></i> Fechar
+    </button>
+  </div>
+</div>
+
+<!-- MODAL SUCESSO CRIAÇÃO RIFA -->
+<div class="modal-overlay" id="modalSucessoRifa">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon" style="background: linear-gradient(135deg, var(--accent-gold), var(--accent-gold-2));">
+        <i class="ph-bold ph-confetti"></i>
+      </div>
+      <h3 id="sucessoRifaTitulo">Rifa Criada!</h3>
+      <p id="sucessoRifaMsg"></p>
+    </div>
+    <div id="sucessoCredenciais"></div>
+    <button class="btn btn-gold btn-lg" style="width: 100%; justify-content: center; margin-top: 20px;" onclick="closeModal('modalSucessoRifa')">
+      <i class="ph-bold ph-check"></i> Entendido
+    </button>
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* =========================================================
+   CONFIGURAÇÃO DO SUPABASE
+   ========================================================= */
+const SUPABASE_URL = 'https://qeqbxuajqoqhsnjkifyo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlcWJ4dWFqcW9xaHNuamtpZnlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODI3MTUyMTgsImV4cCI6MjA5ODI5MTIxOH0.CKzdokJUXcqBSaoyKMFIOLSP3CQMtmpCWxuZMfYdfV4';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/* =========================================================
+   CONSTANTES DO SISTEMA (sem senhas hardcoded)
+   ========================================================= */
+const PRECO_NUMERO = 10.00;
+const DATA_LIMITE = new Date('2026-07-30T23:59:59');
+
+/* =========================================================
+   ESTADO GLOBAL
+   ========================================================= */
+const state = {
+  currentUser: null,
+  currentRifa: null,
+  selectedNumeros: [],
+  rifas: [],
+  pontos: [],
+  isEncerrado: false,
+  realtimeChannels: []
+};
+
+/* =========================================================
+   UTILITÁRIOS
+   ========================================================= */
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+
+const fmtBRL = (v) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const fmtData = (d) => new Date(d).toLocaleString('pt-BR');
+
+function toast(msg, type = 'info', duration = 3500) {
+  const container = $('#toastContainer');
+  const icons = { success: 'check-circle', error: 'x-circle', info: 'info' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<i class="ph-bold ph-${icons[type]}"></i><span class="msg">${msg}</span>`;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.animation = 'toastIn 0.25s reverse';
+    setTimeout(() => el.remove(), 250);
+  }, duration);
+}
+
+function openModal(id) { $('#' + id).classList.add('active'); }
+function closeModal(id) { $('#' + id).classList.remove('active'); }
+
+$$('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.classList.remove('active');
+  });
+});
+
+function verificarEncerramento() {
+  state.isEncerrado = new Date() > DATA_LIMITE;
+  const banner = $('#encerradoBanner');
+  const bannerRifa = $('#rifaEncerradoBanner');
+  if (state.isEncerrado) {
+    const html = `
+      <div class="encerrado-banner">
+        <i class="ph-bold ph-seal-warning"></i>
+        <h3>Rifas Encerradas</h3>
+        <p>O prazo para vendas (30/07/2026 23:59) foi atingido. Novas seleções foram bloqueadas.</p>
+      </div>`;
+    banner.innerHTML = html;
+    banner.style.display = 'block';
+    bannerRifa.innerHTML = html;
+    bannerRifa.style.display = 'block';
+  }
+}
+
+/* =========================================================
+   NAVEGAÇÃO
+   ========================================================= */
+function navigateTo(view, data = null) {
+  $$('.view').forEach(v => v.classList.remove('active'));
+  $(`#view-${view}`).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (view === 'home') loadRifas();
+  if (view === 'rifa' && data) loadRifaIndividual(data);
+  if (view === 'dashboard-user') loadDashboardUser();
+  if (view === 'dashboard-admin') loadDashboardAdmin();
+
+  updateHeaderActions();
+}
+
+function updateHeaderActions() {
+  const container = $('#headerActions');
+  const fab = $('#fabLogin');
+  if (state.currentUser) {
+    const isAdm = state.currentUser.role === 'admin';
+    container.innerHTML = `
+      <button class="btn btn-ghost btn-sm" onclick="navigateTo('${isAdm ? 'dashboard-admin' : 'dashboard-user'}')">
+        <i class="ph-bold ph-layout"></i> Dashboard
+      </button>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">
+        <i class="ph-bold ph-sign-out"></i> Sair
+      </button>`;
+    fab.style.display = 'none';
+  } else {
+    container.innerHTML = '';
+    fab.style.display = 'grid';
+  }
+}
+
+/* =========================================================
+   AUTENTICAÇÃO
+   ========================================================= */
+function openLoginModal() {
+  $('#loginUser').value = '';
+  $('#loginPass').value = '';
+  openModal('modalLogin');
+  setTimeout(() => $('#loginUser').focus(), 200);
+}
+
+async function handleLogin(e) {
+  e.preventDefault();
+  const username = $('#loginUser').value.trim();
+  const password = $('#loginPass').value;
+  const btn = $('#btnLogin');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Entrando...';
+
+  try {
+    const { data, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('username', username)
+      .eq('password', password)
+      .single();
+
+    if (error || !data) {
+      toast('Usuário ou senha inválidos', 'error');
+      return;
+    }
+
+    state.currentUser = data;
+    toast(`Bem-vindo, ${data.nome_responsavel || data.username}!`, 'success');
+    closeModal('modalLogin');
+
+    if (data.role === 'admin') navigateTo('dashboard-admin');
+    else navigateTo('dashboard-user');
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao conectar ao servidor', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-arrow-right"></i> Entrar';
+  }
+}
+
+function logout() {
+  state.currentUser = null;
+  unsubscribeRealtime();
+  toast('Você saiu do sistema', 'info');
+  navigateTo('home');
+}
+
+/* =========================================================
+   REAL-TIME
+   ========================================================= */
+function unsubscribeRealtime() {
+  state.realtimeChannels.forEach(ch => supabase.removeChannel(ch));
+  state.realtimeChannels = [];
+}
+
+function subscribeRealtime() {
+  unsubscribeRealtime();
+
+  const chRifas = supabase
+    .channel('rifas-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'rifas' }, () => {
+      if ($('#view-home').classList.contains('active')) loadRifas();
+      if ($('#view-dashboard-admin').classList.contains('active')) loadDashboardAdmin();
+    })
+    .subscribe();
+
+  const chPontos = supabase
+    .channel('pontos-changes')
+    .on('postgres_changes', { event: '*', schema: 'public', table: 'pontos' }, () => {
+      if ($('#view-rifa').classList.contains('active') && state.currentRifa) {
+        loadPontosRifa(state.currentRifa.id);
+      }
+      if ($('#view-dashboard-user').classList.contains('active')) loadDashboardUser();
+      if ($('#view-dashboard-admin').classList.contains('active')) loadDashboardAdmin();
+    })
+    .subscribe();
+
+  state.realtimeChannels.push(chRifas, chPontos);
+}
+
+/* =========================================================
+   HOME - LISTA DE RIFAS
+   ========================================================= */
+async function loadRifas() {
+  const container = $('#rifasGridContainer');
+  container.innerHTML = `<div class="loader-full"><div class="loader"></div><p>Carregando rifas...</p></div>`;
+
+  try {
+    const { data, error } = await supabase
+      .from('rifas')
+      .select(`
+        *,
+        usuarios:responsavel_id (nome_responsavel),
+        pontos (status)
+      `)
+      .order('numero_card', { ascending: true });
+
+    if (error) throw error;
+
+    state.rifas = data || [];
+    $('#rifasCount').textContent = `${state.rifas.length} rifa${state.rifas.length !== 1 ? 's' : ''}`;
+
+    if (state.rifas.length === 0) {
+      container.innerHTML = `
+        <div class="empty-state">
+          <i class="ph-bold ph-ticket"></i>
+          <h4>Nenhuma rifa disponível</h4>
+          <p>Aguarde o administrador cadastrar as primeiras rifas.</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = '<div class="rifas-grid" id="rifasGrid"></div>';
+    const grid = $('#rifasGrid');
+
+    state.rifas.forEach(r => {
+      const respNome = r.usuarios?.nome_responsavel || 'Responsável';
+      const totalPontos = r.pontos?.length || 0;
+      const vendidos = r.pontos?.filter(p => p.status === 'pago').length || 0;
+      const isClosed = r.status === 'fechada' || state.isEncerrado;
+
+      const card = document.createElement('div');
+      card.className = `rifa-card${isClosed ? ' closed' : ''}`;
+      card.innerHTML = `
+        <button class="btn-share" onclick="event.stopPropagation(); shareRifa('${r.numero_card}')" title="Copiar link">
+          <i class="ph-bold ph-share-network"></i>
+        </button>
+        <div class="rifa-number">${r.numero_card}</div>
+        <div class="rifa-responsavel">${respNome}</div>
+        <div class="rifa-status">
+          <span class="dot"></span>
+          <span>${isClosed ? 'Encerrada' : `${vendidos}/${totalPontos} vendidos`}</span>
+        </div>
+        <div class="rifa-actions">
+          <button class="btn btn-primary btn-sm" ${isClosed ? 'disabled' : ''} onclick="event.stopPropagation(); navigateTo('rifa', ${r.id})">
+            <i class="ph-bold ph-eye"></i> Ver Rifa
+          </button>
+        </div>`;
+
+      if (!isClosed) {
+        card.addEventListener('click', () => navigateTo('rifa', r.id));
+      }
+      grid.appendChild(card);
+    });
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `
+      <div class="empty-state">
+        <i class="ph-bold ph-warning-circle"></i>
+        <h4>Erro ao carregar rifas</h4>
+        <p>${err.message}</p>
+      </div>`;
+  }
+}
+
+function shareRifa(numeroCard) {
+  const url = `${window.location.origin}${window.location.pathname}#rifa=${numeroCard}`;
+  navigator.clipboard.writeText(url).then(() => {
+    toast(`Link da rifa #${numeroCard} copiado!`, 'success');
+  }).catch(() => {
+    toast('Não foi possível copiar o link', 'error');
+  });
+}
+
+/* =========================================================
+   RIFA INDIVIDUAL
+   ========================================================= */
+async function loadRifaIndividual(rifaId) {
+  state.selectedNumeros = [];
+  updateSelectionSummary();
+
+  try {
+    const { data: rifa, error } = await supabase
+      .from('rifas')
+      .select(`*, usuarios:responsavel_id (nome_responsavel)`)
+      .eq('id', rifaId)
+      .single();
+
+    if (error || !rifa) {
+      toast('Rifa não encontrada', 'error');
+      navigateTo('home');
+      return;
+    }
+
+    state.currentRifa = rifa;
+    const respNome = rifa.usuarios?.nome_responsavel || 'Responsável';
+
+    $('#rifaViewTitle').textContent = `Rifa #${rifa.numero_card}`;
+    $('#rifaViewSubtitle').textContent = respNome;
+    $('#rifaInfoTitle').textContent = `Rifa #${rifa.numero_card}`;
+    $('#rifaInfoResp').textContent = respNome;
+    $('#rifaChavePix').textContent = rifa.chave_pix || 'Não informada';
+
+    const qrImg = $('#rifaQrCode');
+    if (rifa.qr_code_url) {
+      qrImg.src = rifa.qr_code_url;
+      qrImg.style.display = 'block';
+    } else {
+      qrImg.style.display = 'none';
+    }
+
+    const isClosed = rifa.status === 'fechada' || state.isEncerrado;
+    $('#rifaInfoStatus').innerHTML = isClosed
+      ? `<i class="ph-bold ph-x-circle" style="color: var(--danger)"></i> Encerrada`
+      : `<i class="ph-bold ph-circle" style="color: var(--success)"></i> Ativa`;
+
+    loadPontosRifa(rifa.id);
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao carregar rifa', 'error');
+    navigateTo('home');
+  }
+}
+
+async function loadPontosRifa(rifaId) {
+  const grid = $('#numerosGrid');
+  grid.innerHTML = `<div class="loader-full" style="grid-column: 1/-1;"><div class="loader"></div></div>`;
+
+  try {
+    const { data: pontos, error } = await supabase
+      .from('pontos')
+      .select('*')
+      .eq('rifa_id', rifaId)
+      .order('numero', { ascending: true });
+
+    if (error) throw error;
+
+    state.pontos = pontos || [];
+    const isClosed = state.currentRifa.status === 'fechada' || state.isEncerrado;
+
+    grid.innerHTML = '';
+    state.pontos.forEach(p => {
+      const btn = document.createElement('button');
+      btn.className = 'numero-btn';
+      btn.textContent = p.numero;
+
+      const isSelected = state.selectedNumeros.includes(p.id);
+
+      if (p.status === 'pago') {
+        btn.classList.add('pago');
+        btn.disabled = true;
+        btn.innerHTML = `${p.numero}<span class="tag">Pago</span>`;
+      } else if (p.status === 'pendente') {
+        btn.classList.add('pendente');
+        btn.disabled = true;
+        btn.innerHTML = `${p.numero}<span class="tag">Pendente</span>`;
+      } else if (isSelected) {
+        btn.classList.add('selected');
+        btn.addEventListener('click', () => toggleNumero(p.id));
+      } else {
+        btn.disabled = isClosed;
+        btn.addEventListener('click', () => toggleNumero(p.id));
+      }
+
+      grid.appendChild(btn);
+    });
+  } catch (err) {
+    console.error(err);
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;"><i class="ph-bold ph-warning"></i><h4>Erro ao carregar números</h4></div>`;
+  }
+}
+
+function toggleNumero(pontoId) {
+  if (state.isEncerrado || state.currentRifa.status === 'fechada') {
+    toast('Rifas encerradas', 'error');
+    return;
+  }
+  const idx = state.selectedNumeros.indexOf(pontoId);
+  if (idx >= 0) state.selectedNumeros.splice(idx, 1);
+  else state.selectedNumeros.push(pontoId);
+  loadPontosRifa(state.currentRifa.id);
+}
+
+function updateSelectionSummary() {
+  const qtd = state.selectedNumeros.length;
+  const total = qtd * PRECO_NUMERO;
+  const summary = $('#selectionSummary');
+  if (qtd > 0) {
+    summary.style.display = 'flex';
+    $('#totalSelecionado').textContent = fmtBRL(total);
+    $('#qtdSelecionada').textContent = `${qtd} número${qtd > 1 ? 's' : ''} selecionado${qtd > 1 ? 's' : ''}`;
+  } else {
+    summary.style.display = 'none';
+  }
+}
+
+function openCheckoutModal() {
+  if (state.selectedNumeros.length === 0) {
+    toast('Selecione pelo menos um número', 'error');
+    return;
+  }
+  const qtd = state.selectedNumeros.length;
+  $('#checkoutTotal').textContent = fmtBRL(qtd * PRECO_NUMERO);
+  $('#checkoutQtd').textContent = `${qtd} número${qtd > 1 ? 's' : ''}`;
+  $('#checkoutNome').value = '';
+  $('#checkoutTel').value = '';
+  $('#checkoutMetodo').value = '';
+  openModal('modalCheckout');
+}
+
+async function handleCheckout(e) {
+  e.preventDefault();
+  const nome = $('#checkoutNome').value.trim();
+  const tel = $('#checkoutTel').value.trim();
+  const metodo = $('#checkoutMetodo').value;
+  const btn = $('#btnCheckout');
+
+  if (!nome || !tel || !metodo) {
+    toast('Preencha todos os campos', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Processando...';
+
+  try {
+    for (const pontoId of state.selectedNumeros) {
+      const { error } = await supabase
+        .from('pontos')
+        .update({
+          status: 'pendente',
+          comprador_nome: nome,
+          comprador_telefone: tel,
+          metodo_pagamento: metodo
+        })
+        .eq('id', pontoId)
+        .eq('status', 'disponivel');
+
+      if (error) throw error;
+    }
+
+    const qtd = state.selectedNumeros.length;
+    toast(`${qtd} número${qtd > 1 ? 's' : ''} reservado${qtd > 1 ? 's' : ''} com sucesso!`, 'success', 5000);
+    closeModal('modalCheckout');
+    state.selectedNumeros = [];
+    loadPontosRifa(state.currentRifa.id);
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao reservar números: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-check-circle"></i> Confirmar Reserva';
+  }
+}
+
+function copyChavePix() {
+  const chave = $('#rifaChavePix').textContent;
+  navigator.clipboard.writeText(chave).then(() => {
+    toast('Chave PIX copiada!', 'success');
+  });
+}
+
+/* =========================================================
+   DASHBOARD USUÁRIO
+   ========================================================= */
+async function loadDashboardUser() {
+  if (!state.currentUser || state.currentUser.role !== 'user') {
+    navigateTo('home');
+    return;
+  }
+
+  const user = state.currentUser;
+  $('#userName').textContent = user.nome_responsavel || user.username;
+  $('#userAvatar').textContent = (user.nome_responsavel || user.username).charAt(0).toUpperCase();
+
+  try {
+    const { data: rifa, error: errRifa } = await supabase
+      .from('rifas')
+      .select('*')
+      .eq('responsavel_id', user.id)
+      .single();
+
+    if (errRifa || !rifa) {
+      toast('Nenhuma rifa encontrada para este usuário', 'error');
+      return;
+    }
+
+    const { data: pontos, error: errPontos } = await supabase
+      .from('pontos')
+      .select('*')
+      .eq('rifa_id', rifa.id)
+      .order('numero', { ascending: true });
+
+    if (errPontos) throw errPontos;
+
+    const total = pontos.length;
+    const pagos = pontos.filter(p => p.status === 'pago').length;
+    const pendentes = pontos.filter(p => p.status === 'pendente').length;
+    const disponiveis = pontos.filter(p => p.status === 'disponivel').length;
+    const arrecadado = pagos * PRECO_NUMERO;
+
+    $('#userStats').innerHTML = `
+      <div class="stat-card gold">
+        <div class="label"><i class="ph-bold ph-currency-circle-dollar"></i> Arrecadado</div>
+        <div class="value">${fmtBRL(arrecadado)}</div>
+        <div class="sub">${pagos} número${pagos !== 1 ? 's' : ''} confirmado${pagos !== 1 ? 's' : ''}</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="label"><i class="ph-bold ph-clock-countdown"></i> Pendentes</div>
+        <div class="value">${pendentes}</div>
+        <div class="sub">Aguardando confirmação</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label"><i class="ph-bold ph-check-circle"></i> Vendidos</div>
+        <div class="value">${pagos + pendentes}</div>
+        <div class="sub">de ${total} números</div>
+      </div>
+      <div class="stat-card">
+        <div class="label"><i class="ph-bold ph-circle"></i> Disponíveis</div>
+        <div class="value">${disponiveis}</div>
+        <div class="sub">Ainda à venda</div>
+      </div>`;
+
+    const pendContainer = $('#pendentesContainer');
+    $('#pendentesCount').textContent = pendentes;
+    const pendentesList = pontos.filter(p => p.status === 'pendente');
+
+    if (pendentesList.length === 0) {
+      pendContainer.innerHTML = `
+        <div class="empty-state" style="padding: 40px 20px;">
+          <i class="ph-bold ph-check-circle" style="color: var(--success);"></i>
+          <h4>Nenhum pagamento pendente</h4>
+          <p>Todos os números estão em dia!</p>
+        </div>`;
+    } else {
+      pendContainer.innerHTML = `
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Nº</th>
+                <th>Comprador</th>
+                <th>Telefone</th>
+                <th>Método</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${pendentesList.map(p => `
+                <tr>
+                  <td><strong>${p.numero}</strong></td>
+                  <td>${p.comprador_nome || '-'}</td>
+                  <td>${p.comprador_telefone || '-'}</td>
+                  <td><span class="status-badge ${p.metodo_pagamento === 'PIX' ? 'pago' : 'pendente'}">${p.metodo_pagamento || '-'}</span></td>
+                  <td class="actions-cell">
+                    <button class="icon-btn approve" title="Confirmar pagamento" onclick="confirmarPagamento(${p.id}, ${p.numero}, '${(p.comprador_nome||'').replace(/'/g,"\\'")}', ${PRECO_NUMERO}, '${p.metodo_pagamento || ''}')">
+                      <i class="ph-bold ph-check"></i>
+                    </button>
+                    <button class="icon-btn reject" title="Liberar número" onclick="liberarNumero(${p.id}, ${p.numero})">
+                      <i class="ph-bold ph-x"></i>
+                    </button>
+                  </td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </div>`;
+    }
+
+    const tbody = $('#userNumerosTable tbody');
+    tbody.innerHTML = pontos.map(p => `
+      <tr>
+        <td><strong>${p.numero}</strong></td>
+        <td>${p.comprador_nome || '-'}</td>
+        <td>${p.comprador_telefone || '-'}</td>
+        <td>${p.metodo_pagamento || '-'}</td>
+        <td><span class="status-badge ${p.status}">${p.status}</span></td>
+      </tr>`).join('');
+
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao carregar dashboard', 'error');
+  }
+}
+
+async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
+  if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(valor)})?`)) return;
+
+  try {
+    const { error } = await supabase
+      .from('pontos')
+      .update({ status: 'pago' })
+      .eq('id', pontoId);
+
+    if (error) throw error;
+
+    $('#reciboContent').innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div><strong style="color: var(--neutral-400);">Operação:</strong> Pagamento Confirmado</div>
+        <div><strong style="color: var(--neutral-400);">Data:</strong> ${fmtData(new Date())}</div>
+        <div><strong style="color: var(--neutral-400);">Número:</strong> ${numero}</div>
+        <div><strong style="color: var(--neutral-400);">Comprador:</strong> ${nome}</div>
+        <div><strong style="color: var(--neutral-400);">Método:</strong> ${metodo}</div>
+        <div><strong style="color: var(--neutral-400);">Valor:</strong> <span style="color: var(--accent-gold); font-size: 18px; font-weight: 700;">${fmtBRL(valor)}</span></div>
+        <div><strong style="color: var(--neutral-400);">Status:</strong> <span class="status-badge pago">PAGO</span></div>
+      </div>`;
+    openModal('modalRecibo');
+    toast(`Número ${numero} confirmado como pago`, 'success');
+    loadDashboardUser();
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao confirmar pagamento', 'error');
+  }
+}
+
+async function liberarNumero(pontoId, numero) {
+  if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível.`)) return;
+
+  try {
+    const { error } = await supabase
+      .from('pontos')
+      .update({
+        status: 'disponivel',
+        comprador_nome: null,
+        comprador_telefone: null,
+        metodo_pagamento: null
+      })
+      .eq('id', pontoId);
+
+    if (error) throw error;
+
+    $('#reciboContent').innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div><strong style="color: var(--neutral-400);">Operação:</strong> Número Liberado</div>
+        <div><strong style="color: var(--neutral-400);">Data:</strong> ${fmtData(new Date())}</div>
+        <div><strong style="color: var(--neutral-400);">Número:</strong> ${numero}</div>
+        <div><strong style="color: var(--neutral-400);">Status:</strong> <span class="status-badge disponivel">DISPONÍVEL</span></div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--glass-border); font-size: 13px; color: var(--neutral-400);">
+          O número foi devolvido ao pool e está novamente disponível para venda.
+        </div>
+      </div>`;
+    openModal('modalRecibo');
+    toast(`Número ${numero} liberado`, 'info');
+    loadDashboardUser();
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao liberar número', 'error');
+  }
+}
+
+/* =========================================================
+   DASHBOARD ADMIN
+   ========================================================= */
+async function loadDashboardAdmin() {
+  if (!state.currentUser || state.currentUser.role !== 'admin') {
+    navigateTo('home');
+    return;
+  }
+
+  try {
+    const { data: rifas, error } = await supabase
+      .from('rifas')
+      .select(`
+        *,
+        usuarios:responsavel_id (nome_responsavel),
+        pontos (status)
+      `)
+      .order('numero_card', { ascending: true });
+
+    if (error) throw error;
+
+    state.rifas = rifas || [];
+    $('#adminRifasCount').textContent = `${state.rifas.length} rifa${state.rifas.length !== 1 ? 's' : ''}`;
+
+    let totalVendido = 0, totalPendente = 0, totalArrecadado = 0, totalRifas = state.rifas.length;
+    state.rifas.forEach(r => {
+      const pts = r.pontos || [];
+      totalVendido += pts.filter(p => p.status === 'pago').length;
+      totalPendente += pts.filter(p => p.status === 'pendente').length;
+      totalArrecadado += pts.filter(p => p.status === 'pago').length * PRECO_NUMERO;
+    });
+
+    $('#adminStats').innerHTML = `
+      <div class="stat-card gold">
+        <div class="label"><i class="ph-bold ph-currency-circle-dollar"></i> Arrecadação Total</div>
+        <div class="value">${fmtBRL(totalArrecadado)}</div>
+        <div class="sub">Confirmados em caixa</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label"><i class="ph-bold ph-check-circle"></i> Total Vendido</div>
+        <div class="value">${totalVendido}</div>
+        <div class="sub">números pagos</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="label"><i class="ph-bold ph-clock-countdown"></i> Total Pendente</div>
+        <div class="value">${totalPendente}</div>
+        <div class="sub">aguardando confirmação</div>
+      </div>
+      <div class="stat-card">
+        <div class="label"><i class="ph-bold ph-cards-three"></i> Rifas Ativas</div>
+        <div class="value">${totalRifas}</div>
+        <div class="sub">cadastradas no sistema</div>
+      </div>`;
+
+    const tbody = $('#adminRifasTable tbody');
+    if (state.rifas.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align: center; padding: 40px; color: var(--neutral-400);">Nenhuma rifa cadastrada</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = state.rifas.map(r => {
+      const pts = r.pontos || [];
+      const vendidos = pts.filter(p => p.status === 'pago').length;
+      const pendentes = pts.filter(p => p.status === 'pendente').length;
+      const arrecadado = vendidos * PRECO_NUMERO;
+      const respNome = r.usuarios?.nome_responsavel || '-';
+
+      return `
+        <tr>
+          <td><strong style="color: var(--accent-gold); font-family: var(--font-display); font-size: 18px;">${r.numero_card}</strong></td>
+          <td>${respNome}</td>
+          <td style="font-family: monospace; font-size: 12px; color: var(--neutral-300); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.chave_pix || '-'}</td>
+          <td><span class="status-badge pago">${vendidos}</span></td>
+          <td><span class="status-badge pendente">${pendentes}</span></td>
+          <td><strong style="color: var(--accent-gold);">${fmtBRL(arrecadado)}</strong></td>
+          <td><span class="status-badge ${r.status === 'ativa' ? 'pago' : 'pendente'}">${r.status}</span></td>
+          <td class="actions-cell">
+            <button class="icon-btn edit" title="Editar" onclick='openEditarRifaModal(${JSON.stringify(r)})'>
+              <i class="ph-bold ph-pencil-simple"></i>
+            </button>
+            <button class="icon-btn delete" title="Remover" onclick="removerRifa(${r.id}, '${respNome.replace(/'/g,"\\'")}', '${r.numero_card}')">
+              <i class="ph-bold ph-trash"></i>
+            </button>
+          </td>
+        </tr>`;
+    }).join('');
+
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao carregar dashboard admin', 'error');
+  }
+}
+
+/* =========================================================
+   CRIAR RIFA (sem senha hardcoded)
+   ========================================================= */
+function openCriarRifaModal() {
+  $('#novoRespNome').value = '';
+  $('#novoRespPix').value = '';
+  $('#novoRespQr').value = '';
+  $('#novoRespSenha').value = '';
+  openModal('modalCriarRifa');
+}
+
+async function handleCriarRifa(e) {
+  e.preventDefault();
+  const nome = $('#novoRespNome').value.trim();
+  const pix = $('#novoRespPix').value.trim();
+  const qr = $('#novoRespQr').value.trim();
+  const senha = $('#novoRespSenha').value;
+  const btn = $('#btnCriarRifa');
+
+  if (!nome || !pix || !senha) {
+    toast('Preencha todos os campos obrigatórios', 'error');
+    return;
+  }
+
+  if (senha.length < 4) {
+    toast('A senha deve ter pelo menos 4 caracteres', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Criando...';
+
+  try {
+    const { data: existentes, error: errEx } = await supabase
+      .from('rifas')
+      .select('numero_card')
+      .order('numero_card', { ascending: false })
+      .limit(1);
+
+    if (errEx) throw errEx;
+
+    let proximoNum = 1;
+    if (existentes && existentes.length > 0) {
+      const ultimo = parseInt(existentes[0].numero_card, 10);
+      if (!isNaN(ultimo)) proximoNum = ultimo + 1;
+    }
+    const numeroCard = String(proximoNum).padStart(3, '0');
+
+    const { data: usuario, error: errUser } = await supabase
+      .from('usuarios')
+      .insert({
+        username: numeroCard,
+        password: senha,
+        role: 'user',
+        nome_responsavel: nome
+      })
+      .select()
+      .single();
+
+    if (errUser) throw errUser;
+
+    const { data: rifa, error: errRifa } = await supabase
+      .from('rifas')
+      .insert({
+        numero_card: numeroCard,
+        responsavel_id: usuario.id,
+        chave_pix: pix,
+        qr_code_url: qr || null,
+        status: 'ativa'
+      })
+      .select()
+      .single();
+
+    if (errRifa) throw errRifa;
+
+    const pontosToInsert = Array.from({ length: 10 }, (_, i) => ({
+      rifa_id: rifa.id,
+      numero: i + 1,
+      status: 'disponivel'
+    }));
+
+    const { error: errPontos } = await supabase
+      .from('pontos')
+      .insert(pontosToInsert);
+
+    if (errPontos) throw errPontos;
+
+    closeModal('modalCriarRifa');
+
+    // Pop-up de sucesso com credenciais exibidas
+    $('#sucessoRifaTitulo').textContent = 'Rifa Criada!';
+    $('#sucessoRifaMsg').textContent = `A rifa do usuario ${nome} foi criada. Número ${numeroCard}`;
+    $('#sucessoCredenciais').innerHTML = `
+      <div class="credentials-box">
+        <div class="row">
+          <span class="label">Usuário</span>
+          <span class="val">${numeroCard}</span>
+        </div>
+        <div class="row">
+          <span class="label">Senha definida</span>
+          <span class="val">${senha}</span>
+        </div>
+        <div class="row">
+          <span class="label">Responsável</span>
+          <span class="val" style="font-size: 13px;">${nome}</span>
+        </div>
+      </div>
+      <p style="font-size: 12px; color: var(--warning); margin-top: 12px; display: flex; align-items: center; gap: 6px;">
+        <i class="ph-bold ph-warning"></i>
+        Anote estas credenciais agora. Elas não serão exibidas novamente.
+      </p>`;
+    openModal('modalSucessoRifa');
+
+    toast(`Rifa #${numeroCard} criada com sucesso!`, 'success');
+    loadDashboardAdmin();
+
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao criar rifa: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-sparkle"></i> Criar Rifa';
+  }
+}
+
+/* =========================================================
+   EDITAR / REMOVER RIFA
+   ========================================================= */
+function openEditarRifaModal(rifa) {
+  $('#editRifaId').value = rifa.id;
+  $('#editRespNome').value = rifa.usuarios?.nome_responsavel || '';
+  $('#editRespPix').value = rifa.chave_pix || '';
+  $('#editRespQr').value = rifa.qr_code_url || '';
+  $('#editRifaStatus').value = rifa.status;
+  openModal('modalEditarRifa');
+}
+
+async function handleEditarRifa(e) {
+  e.preventDefault();
+  const id = $('#editRifaId').value;
+  const nome = $('#editRespNome').value.trim();
+  const pix = $('#editRespPix').value.trim();
+  const qr = $('#editRespQr').value.trim();
+  const status = $('#editRifaStatus').value;
+  const btn = $('#btnEditarRifa');
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> Salvando...';
+
+  try {
+    const { data: rifa, error: errRifa } = await supabase
+      .from('rifas')
+      .select('responsavel_id')
+      .eq('id', id)
+      .single();
+
+    if (errRifa) throw errRifa;
+
+    const { error: errUser } = await supabase
+      .from('usuarios')
+      .update({ nome_responsavel: nome })
+      .eq('id', rifa.responsavel_id);
+
+    if (errUser) throw errUser;
+
+    const { error: errUpdate } = await supabase
+      .from('rifas')
+      .update({ chave_pix: pix, qr_code_url: qr || null, status: status })
+      .eq('id', id);
+
+    if (errUpdate) throw errUpdate;
+
+    closeModal('modalEditarRifa');
+    toast('Rifa atualizada com sucesso', 'success');
+    loadDashboardAdmin();
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao editar rifa', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="ph-bold ph-check-circle"></i> Salvar Alterações';
+  }
+}
+
+async function removerRifa(id, nome, numeroCard) {
+  if (!confirm(`Remover a rifa #${numeroCard} de ${nome}?\n\nEsta ação irá remover também todos os pontos associados.`)) return;
+
+  try {
+    const { error: errPontos } = await supabase
+      .from('pontos')
+      .delete()
+      .eq('rifa_id', id);
+    if (errPontos) throw errPontos;
+
+    const { data: rifa } = await supabase.from('rifas').select('responsavel_id').eq('id', id).single();
+
+    const { error: errRifa } = await supabase.from('rifas').delete().eq('id', id);
+    if (errRifa) throw errRifa;
+
+    if (rifa?.responsavel_id) {
+      await supabase.from('usuarios').delete().eq('id', rifa.responsavel_id);
+    }
+
+    toast(`Rifa #${numeroCard} removida`, 'success');
+    loadDashboardAdmin();
+  } catch (err) {
+    console.error(err);
+    toast('Erro ao remover rifa', 'error');
+  }
+}
+
+/* =========================================================
+   DEEP LINK / HASH ROUTING
+   ========================================================= */
+function handleHashRoute() {
+  const hash = window.location.hash;
+  if (hash.startsWith('#rifa=')) {
+    const num = hash.replace('#rifa=', '').trim();
+    supabase.from('rifas').select('id').eq('numero_card', num).single().then(({ data }) => {
+      if (data) navigateTo('rifa', data.id);
+    });
+  }
+}
+
+/* =========================================================
+   INICIALIZAÇÃO
+   ========================================================= */
+window.addEventListener('DOMContentLoaded', () => {
+  verificarEncerramento();
+  subscribeRealtime();
+  loadRifas();
+  handleHashRoute();
+});
+
+window.addEventListener('hashchange', handleHashRoute);
+</script>
+
+</body>
+</html>
