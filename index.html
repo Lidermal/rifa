@@ -1080,7 +1080,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
         <span class="dot"></span>
         <span>Rifas Ativas • Prazo até 30/07/2026</span>
       </div>
-      <h2>Concorra ao prêmio de R$300.</h2>
+      <h2>Concorra ao prêmio de R$300</h2>
       <p>Escolha sua rifa, selecione os números da sorte e pague via PIX ou em espécie. Cada número custa apenas <strong style="color: var(--accent-gold)">R$ 10,00</strong>.</p>
     </div>
 
@@ -1560,7 +1560,6 @@ function generateQRCode(chave, containerId) {
   container.innerHTML = '';
   
   try {
-    // Gera QR Code usando a biblioteca QRCode.js
     new QRCode(container, {
       text: chave,
       width: 200,
@@ -1608,6 +1607,7 @@ const state = {
   selectedNumeros: [],
   rifas: [],
   pontos: [],
+  pontosCache: new Map(),
   isEncerrado: false,
   realtimeChannels: []
 };
@@ -1863,7 +1863,6 @@ async function loadRifaIndividual(rifaId) {
     $('#rifaInfoResp').textContent = respNome;
     $('#rifaChavePix').textContent = rifa.chave_pix || 'Não informada';
 
-    // Gera QR Code se houver chave PIX
     if (rifa.chave_pix) {
       generateQRCode(rifa.chave_pix, '#qrcode-container');
     } else {
@@ -2052,6 +2051,19 @@ async function handleCheckout(e) {
 }
 
 /* =========================================================
+   FUNÇÃO AUXILIAR - ESCAPE HTML
+   ========================================================= */
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+/* =========================================================
    DASHBOARD USUÁRIO
    ========================================================= */
 async function loadDashboardUser() {
@@ -2088,6 +2100,10 @@ async function loadDashboardUser() {
       .order('numero', { ascending: true });
 
     if (errPontos) throw errPontos;
+
+    // Atualiza cache de pontos
+    state.pontosCache.clear();
+    pontos.forEach(p => state.pontosCache.set(p.id, p));
 
     const total = pontos.length;
     const pagos = pontos.filter(p => p.status === 'pago').length;
@@ -2142,47 +2158,55 @@ async function loadDashboardUser() {
                 <th>Ações</th>
               </tr>
             </thead>
-            <tbody>
-              ${pendentesList.map(p => `
-                <tr>
-                  <td><strong>${p.numero}</strong></td>
-                  <td>${p.comprador_nome || '-'}</td>
-                  <td>${p.comprador_telefone || '-'}</td>
-                  <td><span class="status-badge ${p.metodo_pagamento === 'PIX' ? 'pago' : 'pendente'}">${p.metodo_pagamento || '-'}</span></td>
-                  <td><strong>${fmtBRL(PRECO_NUMERO)}</strong></td>
-                  <td class="actions-cell">
-                    <button class="icon-btn approve" title="Confirmar pagamento recebido" onclick="confirmarPagamento(${p.id}, ${p.numero}, '${(p.comprador_nome||'').replace(/'/g,"\\'")}', ${PRECO_NUMERO}, '${p.metodo_pagamento || ''}')">
-                      <i class="ph-bold ph-check"></i>
-                    </button>
-                    <button class="icon-btn reject" title="Cancelar/Liberar número" onclick="liberarNumero(${p.id}, ${p.numero})">
-                      <i class="ph-bold ph-x"></i>
-                    </button>
-                  </td>
-                </tr>`).join('')}
-            </tbody>
+            <tbody id="pendentesBody"></tbody>
           </table>
         </div>`;
+      
+      const tbody = $('#pendentesBody');
+      pendentesList.forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td><strong>${p.numero}</strong></td>
+          <td>${escapeHtml(p.comprador_nome || '-')}</td>
+          <td>${escapeHtml(p.comprador_telefone || '-')}</td>
+          <td><span class="status-badge ${p.metodo_pagamento === 'PIX' ? 'pago' : 'pendente'}">${p.metodo_pagamento || '-'}</span></td>
+          <td><strong>${fmtBRL(PRECO_NUMERO)}</strong></td>
+          <td class="actions-cell">
+            <button class="icon-btn approve" title="Confirmar pagamento recebido" data-action="confirm" data-ponto-id="${p.id}">
+              <i class="ph-bold ph-check"></i>
+            </button>
+            <button class="icon-btn reject" title="Cancelar/Liberar número" data-action="reject" data-ponto-id="${p.id}">
+              <i class="ph-bold ph-x"></i>
+            </button>
+          </td>`;
+        tbody.appendChild(tr);
+      });
     }
 
     const tbody = $('#userNumerosTable tbody');
-    tbody.innerHTML = pontos.map(p => `
-      <tr>
-        <td><strong>${p.numero}</strong></td>
-        <td>${p.comprador_nome || '-'}</td>
-        <td>${p.comprador_telefone || '-'}</td>
-        <td>${p.metodo_pagamento || '-'}</td>
-        <td><span class="status-badge ${p.status}">${p.status}</span></td>
-        <td class="actions-cell">
-          ${p.status === 'pendente' ? `
-            <button class="icon-btn approve" title="Confirmar" onclick="confirmarPagamento(${p.id}, ${p.numero}, '${(p.comprador_nome||'').replace(/'/g,"\\'")}', ${PRECO_NUMERO}, '${p.metodo_pagamento || ''}')">
+    tbody.innerHTML = '';
+    pontos.forEach(p => {
+      const tr = document.createElement('tr');
+      const actionsCell = p.status === 'pendente' 
+        ? `<td class="actions-cell">
+            <button class="icon-btn approve" title="Confirmar" data-action="confirm" data-ponto-id="${p.id}">
               <i class="ph-bold ph-check"></i>
             </button>
-            <button class="icon-btn reject" title="Liberar" onclick="liberarNumero(${p.id}, ${p.numero})">
+            <button class="icon-btn reject" title="Liberar" data-action="reject" data-ponto-id="${p.id}">
               <i class="ph-bold ph-x"></i>
             </button>
-          ` : '-'}
-        </td>
-      </tr>`).join('');
+          </td>`
+        : `<td>-</td>`;
+      
+      tr.innerHTML = `
+        <td><strong>${p.numero}</strong></td>
+        <td>${escapeHtml(p.comprador_nome || '-')}</td>
+        <td>${escapeHtml(p.comprador_telefone || '-')}</td>
+        <td>${p.metodo_pagamento || '-'}</td>
+        <td><span class="status-badge ${p.status}">${p.status}</span></td>
+        ${actionsCell}`;
+      tbody.appendChild(tr);
+    });
 
   } catch (err) {
     console.error(err);
@@ -2190,13 +2214,67 @@ async function loadDashboardUser() {
   }
 }
 
-async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
+/* =========================================================
+   DELEGAÇÃO DE EVENTOS PARA AÇÕES
+   ========================================================= */
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+
+  const action = btn.dataset.action;
+  const pontoId = parseInt(btn.dataset.pontoId, 10);
+  
+  if (!pontoId || isNaN(pontoId)) return;
+
+  if (action === 'confirm') {
+    await confirmarPagamento(pontoId);
+  } else if (action === 'reject') {
+    await liberarNumero(pontoId);
+  }
+});
+
+/* =========================================================
+   CONFIRMAR PAGAMENTO
+   ========================================================= */
+async function confirmarPagamento(pontoId) {
   if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
 
-  if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(valor)}) via ${metodo}?`)) return;
+  let ponto = state.pontosCache.get(pontoId);
+  
+  if (!ponto) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('pontos')
+        .select('*')
+        .eq('id', pontoId)
+        .single();
+      
+      if (error || !data) {
+        toast('Número não encontrado', 'error');
+        return;
+      }
+      ponto = data;
+    } catch (err) {
+      console.error(err);
+      toast('Erro ao buscar dados do número', 'error');
+      return;
+    }
+  }
+
+  const nome = ponto.comprador_nome || 'Não informado';
+  const metodo = ponto.metodo_pagamento || 'Não informado';
+  const numero = ponto.numero;
+
+  const confirmMsg = `Confirmar recebimento do pagamento?\n\n` +
+                     `• Número: ${numero}\n` +
+                     `• Comprador: ${nome}\n` +
+                     `• Método: ${metodo}\n` +
+                     `• Valor: ${fmtBRL(PRECO_NUMERO)}`;
+
+  if (!confirm(confirmMsg)) return;
 
   try {
     const { error } = await supabaseClient
@@ -2211,9 +2289,9 @@ async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
         <div><strong style="color: var(--neutral-400);">Operação:</strong> Pagamento Confirmado</div>
         <div><strong style="color: var(--neutral-400);">Data:</strong> ${fmtData(new Date())}</div>
         <div><strong style="color: var(--neutral-400);">Número:</strong> ${numero}</div>
-        <div><strong style="color: var(--neutral-400);">Comprador:</strong> ${nome}</div>
+        <div><strong style="color: var(--neutral-400);">Comprador:</strong> ${escapeHtml(nome)}</div>
         <div><strong style="color: var(--neutral-400);">Método:</strong> ${metodo}</div>
-        <div><strong style="color: var(--neutral-400);">Valor:</strong> <span style="color: var(--accent-gold); font-size: 18px; font-weight: 700;">${fmtBRL(valor)}</span></div>
+        <div><strong style="color: var(--neutral-400);">Valor:</strong> <span style="color: var(--accent-gold); font-size: 18px; font-weight: 700;">${fmtBRL(PRECO_NUMERO)}</span></div>
         <div><strong style="color: var(--neutral-400);">Status:</strong> <span class="status-badge pago">PAGO</span></div>
       </div>`;
     openModal('modalRecibo');
@@ -2225,11 +2303,38 @@ async function confirmarPagamento(pontoId, numero, nome, valor, metodo) {
   }
 }
 
-async function liberarNumero(pontoId, numero) {
+/* =========================================================
+   LIBERAR NÚMERO
+   ========================================================= */
+async function liberarNumero(pontoId) {
   if (!supabaseClient) {
     toast('Banco de dados não conectado', 'error');
     return;
   }
+
+  let ponto = state.pontosCache.get(pontoId);
+  
+  if (!ponto) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('pontos')
+        .select('*')
+        .eq('id', pontoId)
+        .single();
+      
+      if (error || !data) {
+        toast('Número não encontrado', 'error');
+        return;
+      }
+      ponto = data;
+    } catch (err) {
+      console.error(err);
+      toast('Erro ao buscar dados', 'error');
+      return;
+    }
+  }
+
+  const numero = ponto.numero;
 
   if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível para venda.`)) return;
 
@@ -2340,17 +2445,17 @@ async function loadDashboardAdmin() {
       return `
         <tr>
           <td><strong style="color: var(--accent-gold); font-family: var(--font-display); font-size: 18px;">${r.numero_card}</strong></td>
-          <td>${respNome}</td>
-          <td style="font-family: monospace; font-size: 12px; color: var(--neutral-300); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${r.chave_pix || '-'}</td>
+          <td>${escapeHtml(respNome)}</td>
+          <td style="font-family: monospace; font-size: 12px; color: var(--neutral-300); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(r.chave_pix || '-')}</td>
           <td><span class="status-badge pago">${vendidos}</span></td>
           <td><span class="status-badge pendente">${pendentes}</span></td>
           <td><strong style="color: var(--accent-gold);">${fmtBRL(arrecadado)}</strong></td>
           <td><span class="status-badge ${r.status === 'ativa' ? 'pago' : 'pendente'}">${r.status}</span></td>
           <td class="actions-cell">
-            <button class="icon-btn edit" title="Editar" onclick='openEditarRifaModal(${JSON.stringify(r)})'>
+            <button class="icon-btn edit" title="Editar" data-rifa-id="${r.id}">
               <i class="ph-bold ph-pencil-simple"></i>
             </button>
-            <button class="icon-btn delete" title="Remover" onclick="removerRifa(${r.id}, '${respNome.replace(/'/g,"\\'")}', '${r.numero_card}')">
+            <button class="icon-btn delete" title="Remover" data-delete-rifa-id="${r.id}" data-delete-rifa-nome="${escapeHtml(respNome)}" data-delete-rifa-num="${r.numero_card}">
               <i class="ph-bold ph-trash"></i>
             </button>
           </td>
@@ -2362,6 +2467,27 @@ async function loadDashboardAdmin() {
     toast('Erro ao carregar dashboard admin', 'error');
   }
 }
+
+/* =========================================================
+   DELEGAÇÃO ADMIN
+   ========================================================= */
+document.addEventListener('click', async (e) => {
+  const editBtn = e.target.closest('[data-rifa-id]');
+  if (editBtn && !editBtn.dataset.deleteRifaId) {
+    const rifaId = parseInt(editBtn.dataset.rifaId, 10);
+    const rifa = state.rifas.find(r => r.id === rifaId);
+    if (rifa) openEditarRifaModal(rifa);
+    return;
+  }
+
+  const delBtn = e.target.closest('[data-delete-rifa-id]');
+  if (delBtn) {
+    const id = parseInt(delBtn.dataset.deleteRifaId, 10);
+    const nome = delBtn.dataset.deleteRifaNome;
+    const num = delBtn.dataset.deleteRifaNum;
+    await removerRifa(id, nome, num);
+  }
+});
 
 /* =========================================================
    CRIAR RIFA
@@ -2470,11 +2596,11 @@ async function handleCriarRifa(e) {
         </div>
         <div class="row">
           <span class="label">Responsável</span>
-          <span class="val" style="font-size: 13px;">${nome}</span>
+          <span class="val" style="font-size: 13px;">${escapeHtml(nome)}</span>
         </div>
         <div class="row">
           <span class="label">Chave PIX</span>
-          <span class="val" style="font-size: 13px;">${pix}</span>
+          <span class="val" style="font-size: 13px;">${escapeHtml(pix)}</span>
         </div>
       </div>
       <p style="font-size: 12px; color: var(--warning); margin-top: 12px; display: flex; align-items: center; gap: 6px;">
