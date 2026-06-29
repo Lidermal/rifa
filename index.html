@@ -689,6 +689,111 @@ tr:hover td { background: rgba(255,255,255,0.02); }
 }
 .share-info i { color: #25D366; font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
+/* ============================================
+   MODAL DE CONFIRMAÇÃO PERSONALIZADO
+   ============================================ */
+.confirm-modal {
+  max-width: 440px;
+  text-align: center;
+}
+.confirm-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 36px;
+  margin: 0 auto 20px;
+  animation: confirmPulse 0.5s ease;
+}
+@keyframes confirmPulse {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.confirm-icon.success {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--success);
+  border: 2px solid rgba(16, 185, 129, 0.3);
+  box-shadow: 0 0 30px rgba(16, 185, 129, 0.3);
+}
+.confirm-icon.warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--warning);
+  border: 2px solid rgba(245, 158, 11, 0.3);
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+}
+.confirm-icon.danger {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--danger);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  box-shadow: 0 0 30px rgba(239, 68, 68, 0.3);
+}
+.confirm-icon.info {
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--info);
+  border: 2px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 0 0 30px rgba(59, 130, 246, 0.3);
+}
+
+.confirm-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: var(--neutral-50);
+}
+
+.confirm-message {
+  font-size: 14px;
+  color: var(--neutral-300);
+  line-height: 1.6;
+  margin-bottom: 20px;
+  white-space: pre-line;
+}
+
+.confirm-details {
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.confirm-details .detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.confirm-details .detail-row:not(:last-child) {
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.confirm-details .detail-label {
+  color: var(--neutral-400);
+  font-weight: 500;
+}
+
+.confirm-details .detail-value {
+  color: var(--neutral-100);
+  font-weight: 600;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.confirm-actions .btn {
+  flex: 1;
+  justify-content: center;
+  padding: 12px 20px;
+}
+
 @media (max-width: 640px) {
   .header { padding: 14px 18px; }
   .brand-text h1 { font-size: 15px; }
@@ -704,6 +809,7 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   .fab { width: 56px; height: 56px; font-size: 22px; bottom: 20px; right: 20px; }
   .dashboard-header h2 { font-size: 22px; }
   .stat-card .value { font-size: 26px; }
+  .confirm-actions { flex-direction: column-reverse; }
 }
 </style>
 </head>
@@ -1127,6 +1233,28 @@ tr:hover td { background: rgba(255,255,255,0.02); }
   </div>
 </div>
 
+<!-- ============================================
+     MODAL DE CONFIRMAÇÃO PERSONALIZADO
+     ============================================ -->
+<div class="modal-overlay" id="modalConfirm">
+  <div class="modal confirm-modal">
+    <div class="confirm-icon" id="confirmIcon">
+      <i class="ph-bold ph-question"></i>
+    </div>
+    <h3 class="confirm-title" id="confirmTitle">Confirmar ação?</h3>
+    <p class="confirm-message" id="confirmMessage"></p>
+    <div class="confirm-details" id="confirmDetails" style="display: none;"></div>
+    <div class="confirm-actions">
+      <button class="btn btn-ghost" id="confirmCancelBtn">
+        <i class="ph-bold ph-x"></i> Cancelar
+      </button>
+      <button class="btn btn-primary" id="confirmOkBtn">
+        <i class="ph-bold ph-check"></i> Confirmar
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 
 <script>
@@ -1175,6 +1303,79 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 });
+
+// ============================================
+// MODAL DE CONFIRMAÇÃO PERSONALIZADO
+// ============================================
+function customConfirm(options = {}) {
+  const {
+    title = 'Confirmar ação?',
+    message = '',
+    details = null, // Array de {label, value}
+    icon = 'question',
+    iconType = 'info', // success, warning, danger, info
+    confirmText = 'Confirmar',
+    cancelText = 'Cancelar',
+    confirmClass = 'btn-primary' // btn-primary, btn-danger, btn-success
+  } = options;
+
+  return new Promise((resolve) => {
+    const modal = $('#modalConfirm');
+    const iconEl = $('#confirmIcon');
+    const titleEl = $('#confirmTitle');
+    const messageEl = $('#confirmMessage');
+    const detailsEl = $('#confirmDetails');
+    const okBtn = $('#confirmOkBtn');
+    const cancelBtn = $('#confirmCancelBtn');
+
+    // Configura ícone
+    iconEl.className = `confirm-icon ${iconType}`;
+    iconEl.innerHTML = `<i class="ph-bold ph-${icon}"></i>`;
+
+    // Configura textos
+    titleEl.textContent = title;
+    messageEl.textContent = message;
+
+    // Configura detalhes
+    if (details && details.length > 0) {
+      detailsEl.style.display = 'block';
+      detailsEl.innerHTML = details.map(d => `
+        <div class="detail-row">
+          <span class="detail-label">${d.label}</span>
+          <span class="detail-value">${d.value}</span>
+        </div>
+      `).join('');
+    } else {
+      detailsEl.style.display = 'none';
+    }
+
+    // Configura botões
+    okBtn.className = `btn ${confirmClass}`;
+    okBtn.innerHTML = `<i class="ph-bold ph-check"></i> ${confirmText}`;
+    cancelBtn.innerHTML = `<i class="ph-bold ph-x"></i> ${cancelText}`;
+
+    // Limpa listeners anteriores clonando os botões
+    const newOkBtn = okBtn.cloneNode(true);
+    okBtn.parentNode.replaceChild(newOkBtn, okBtn);
+    
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    // Adiciona novos listeners
+    newOkBtn.addEventListener('click', () => {
+      closeModal('modalConfirm');
+      resolve(true);
+    });
+
+    newCancelBtn.addEventListener('click', () => {
+      closeModal('modalConfirm');
+      resolve(false);
+    });
+
+    // Abre o modal
+    openModal('modalConfirm');
+  });
+}
 
 function navigateTo(view, data = null) {
   $$('.view').forEach(v => v.classList.remove('active'));
@@ -2312,7 +2513,24 @@ async function confirmarPagamento(pontoId) {
   const metodo = ponto.metodo_pagamento || 'Não informado';
   const numero = ponto.numero;
 
-  if (!confirm(`Confirmar pagamento do número ${numero} de ${nome} (${fmtBRL(PRECO_NUMERO)}) via ${metodo}?`)) return;
+  // MODAL DE CONFIRMAÇÃO PERSONALIZADO
+  const confirmado = await customConfirm({
+    title: 'Confirmar Pagamento Recebido',
+    message: 'Você está confirmando que o pagamento abaixo foi recebido com sucesso. Esta ação não poderá ser desfeita.',
+    icon: 'check-circle',
+    iconType: 'success',
+    confirmText: 'Sim, Confirmar',
+    cancelText: 'Cancelar',
+    confirmClass: 'btn-success',
+    details: [
+      { label: 'Número da Rifa', value: `#${numero}` },
+      { label: 'Comprador', value: nome },
+      { label: 'Método', value: metodo },
+      { label: 'Valor', value: fmtBRL(PRECO_NUMERO) }
+    ]
+  });
+
+  if (!confirmado) return;
 
   try {
     const { data, error } = await supabaseClient
@@ -2375,8 +2593,24 @@ async function liberarNumero(pontoId) {
   }
 
   const numero = ponto.numero;
+  const nome = ponto.comprador_nome || 'Não informado';
 
-  if (!confirm(`Liberar o número ${numero}? Ele voltará a ficar disponível para venda.`)) return;
+  // MODAL DE CONFIRMAÇÃO PERSONALIZADO
+  const confirmado = await customConfirm({
+    title: 'Liberar Número',
+    message: 'Você está liberando este número. Os dados do comprador serão apagados e o número voltará a ficar disponível para venda.',
+    icon: 'warning',
+    iconType: 'warning',
+    confirmText: 'Sim, Liberar',
+    cancelText: 'Cancelar',
+    confirmClass: 'btn-danger',
+    details: [
+      { label: 'Número da Rifa', value: `#${numero}` },
+      { label: 'Comprador Atual', value: nome }
+    ]
+  });
+
+  if (!confirmado) return;
 
   try {
     const { error } = await supabaseClient
@@ -2720,7 +2954,22 @@ async function removerRifa(id, nome, numeroCard) {
     return;
   }
 
-  if (!confirm(`Remover a rifa #${numeroCard} de ${nome}?\n\nEsta ação irá remover também todos os pontos associados.`)) return;
+  // MODAL DE CONFIRMAÇÃO PERSONALIZADO
+  const confirmado = await customConfirm({
+    title: 'Remover Rifa Permanentemente',
+    message: 'Esta ação irá remover a rifa e TODOS os pontos associados. Os dados não poderão ser recuperados.',
+    icon: 'trash',
+    iconType: 'danger',
+    confirmText: 'Sim, Remover',
+    cancelText: 'Cancelar',
+    confirmClass: 'btn-danger',
+    details: [
+      { label: 'Número da Rifa', value: `#${numeroCard}` },
+      { label: 'Responsável', value: nome }
+    ]
+  });
+
+  if (!confirmado) return;
 
   try {
     const { error: errPontos } = await supabaseClient
